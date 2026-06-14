@@ -10,6 +10,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDL2 REQUIRED sdl2)
 pkg_check_modules(LIBPNG REQUIRED libpng)
+find_package(wxWidgets REQUIRED COMPONENTS core base)
+include(${wxWidgets_USE_FILE})
 find_package(OpenGL REQUIRED)
 find_library(OPENGL_LEGACY_GL_LIBRARY GL)
 if(NOT OPENGL_LEGACY_GL_LIBRARY)
@@ -479,7 +481,8 @@ add_executable(project64-linux
 target_include_directories(project64-linux PRIVATE
     "${PJ64_SOURCE}"
     "${CMAKE_CURRENT_BINARY_DIR}/generated"
-    ${SDL2_INCLUDE_DIRS})
-target_compile_options(project64-linux PRIVATE ${SDL2_CFLAGS_OTHER})
+    ${SDL2_INCLUDE_DIRS}
+    ${wxWidgets_INCLUDE_DIRS})
+target_compile_options(project64-linux PRIVATE ${SDL2_CFLAGS_OTHER} ${wxWidgets_CXX_FLAGS})
 target_link_options(project64-linux PRIVATE -rdynamic)
-target_link_libraries(project64-linux PRIVATE Project64-core ${SDL2_LIBRARIES} ${OPENGL_LEGACY_GL_LIBRARY})
+target_link_libraries(project64-linux PRIVATE Project64-core ${SDL2_LIBRARIES} ${OPENGL_LEGACY_GL_LIBRARY} ${wxWidgets_LIBRARIES})

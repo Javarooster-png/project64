@@ -1,6 +1,6 @@
 #include "trace.h"
 #include "Config.h"
-#include "settings.h"
+#include "Settings.h"
 
 #include <string.h>
 #include <Common/Trace.h>

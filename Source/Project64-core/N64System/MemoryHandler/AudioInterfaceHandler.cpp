@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
 #include "AudioInterfaceHandler.h"
-#include <Project64-core\N64System\Mips\Register.h>
-#include <Project64-core\N64System\N64System.h>
-#include <Project64-core\N64System\SystemGlobals.h>
+#include <Project64-core/N64System/Mips/Register.h>
+#include <Project64-core/N64System/N64System.h>
+#include <Project64-core/N64System/SystemGlobals.h>
 
 AudioInterfaceReg::AudioInterfaceReg(uint32_t * _AudioInterface) :
     AI_DRAM_ADDR_REG(_AudioInterface[0]),

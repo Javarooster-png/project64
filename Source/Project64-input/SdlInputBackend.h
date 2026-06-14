@@ -5,7 +5,11 @@
 #include "N64Controller.h"
 #include "Shortcuts.h"
 #include <Common/CriticalSection.h>
+#ifdef _WIN32
 #include <Windows.h>
+#else
+#include <Project64-linux/win_compat.h>
+#endif
 #include <SDL.h>
 #include <string>
 #include <map>
@@ -129,7 +133,9 @@ private:
     void EnsurePumpWindow(void);
     void DestroyPumpWindow(void);
     void ApplyPumpTimerInterval(void);
+#ifdef _WIN32
     static LRESULT CALLBACK PumpWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#endif
 
     DeviceNotification m_DeviceNotification;
     DEVICE_MAP m_Devices;

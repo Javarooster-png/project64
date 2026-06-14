@@ -1,6 +1,7 @@
 #include "Log.h"
 #include "Platform.h"
 #include "path.h"
+#include <cstring>
 #include <stdarg.h>
 #include <stdio.h>
 

@@ -1,5 +1,5 @@
 #pragma once
-#include <Project64-core\Settings\SettingType\SettingsType-RomDatabase.h>
+#include <Project64-core/Settings/SettingType/SettingsType-RomDatabase.h>
 
 class CSettingTypeRDBCpuType :
     public CSettingTypeRomDatabase

@@ -1,18 +1,18 @@
 #pragma once
 
 #include <Common/Platform.h>
-#include <Project64-core\Logging.h>
-#include <Project64-core\N64System\MemoryHandler\AudioInterfaceHandler.h>
-#include <Project64-core\N64System\MemoryHandler\CartridgeDomain2Address1Handler.h>
-#include <Project64-core\N64System\MemoryHandler\DisplayControlRegHandler.h>
-#include <Project64-core\N64System\MemoryHandler\MIPSInterfaceHandler.h>
-#include <Project64-core\N64System\MemoryHandler\PeripheralInterfaceHandler.h>
-#include <Project64-core\N64System\MemoryHandler\RDRAMInterfaceHandler.h>
-#include <Project64-core\N64System\MemoryHandler\RDRAMRegistersHandler.h>
-#include <Project64-core\N64System\MemoryHandler\SPRegistersHandler.h>
-#include <Project64-core\N64System\MemoryHandler\SerialInterfaceHandler.h>
-#include <Project64-core\N64System\MemoryHandler\VideoInterfaceHandler.h>
-#include <Project64-core\N64System\N64Types.h>
+#include <Project64-core/Logging.h>
+#include <Project64-core/N64System/MemoryHandler/AudioInterfaceHandler.h>
+#include <Project64-core/N64System/MemoryHandler/CartridgeDomain2Address1Handler.h>
+#include <Project64-core/N64System/MemoryHandler/DisplayControlRegHandler.h>
+#include <Project64-core/N64System/MemoryHandler/MIPSInterfaceHandler.h>
+#include <Project64-core/N64System/MemoryHandler/PeripheralInterfaceHandler.h>
+#include <Project64-core/N64System/MemoryHandler/RDRAMInterfaceHandler.h>
+#include <Project64-core/N64System/MemoryHandler/RDRAMRegistersHandler.h>
+#include <Project64-core/N64System/MemoryHandler/SPRegistersHandler.h>
+#include <Project64-core/N64System/MemoryHandler/SerialInterfaceHandler.h>
+#include <Project64-core/N64System/MemoryHandler/VideoInterfaceHandler.h>
+#include <Project64-core/N64System/N64Types.h>
 
 #pragma warning(push)
 #pragma warning(disable : 4201) // Non-standard extension used: nameless struct/union

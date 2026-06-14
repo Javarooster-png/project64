@@ -26,6 +26,8 @@ Thumbs.db
 /Bin/x64/Debug
 /Bin/x64/Release
 /build
+/build-linux/
+/cmake-build-*/
 /Config/Cheats-User
 /Config/Enhancements-User
 /Config/Project64.cache3
@@ -35,7 +37,9 @@ Thumbs.db
 /Config/Project64.zcache
 /git.properties
 /ipch
+/Logs/
 /Package
+/pj64_4.0/
 /Plugin/Win32/Audio/AndroidAudio_d.dll
 /Plugin/Win32/Audio/AndroidAudio.dll
 /Plugin/Win32/Audio/Project64-Audio_d.dll
@@ -123,11 +127,13 @@ Thumbs.db
 /Plugin64/RSP/RSP-HLE_d.dll
 /Plugin64/RSP/RSP-HLE.dll
 /Save
+/Screenshots/
 /Source/nragev20/Version.h
 /Source/Project64-audio/Version.h
 /Source/Project64-core/Version.h
 /Source/Project64-input/Version.h
 /Source/Project64-video/Version.h
 /Source/Project64-rsp-core/Version.h
+/Textures/
 /Plugin/Win32/GFX/GLideN64
 /Plugin/x64/GFX/GLideN64

@@ -53,7 +53,7 @@ HLETaskBooter CHleTask::IsHleTask(void)
     return HLETaskBooter::unknown;
 }
 
-#if defined(__amd64__) || defined(_M_X64)
+#if (defined(__amd64__) || defined(_M_X64)) && !defined(PJ64_RSP_DISABLE_RECOMPILER)
 void CHleTask::SetupCommandList(const TASK_INFO & TaskInfo, HLETaskBooter bootType)
 {
     uint32_t JumpTableLength = 0x7E, JumpTablePos = 0x10;
@@ -453,7 +453,7 @@ bool CHleTask::ProcessHleTask(void)
     return false;
 }
 
-#if defined(__amd64__) || defined(_M_X64)
+#if (defined(__amd64__) || defined(_M_X64)) && !defined(PJ64_RSP_DISABLE_RECOMPILER)
 bool CHleTask::HleTaskRecompiler(HLETaskBooter booter)
 {
     const TASK_INFO & TaskInfo = *((TASK_INFO *)(m_DMEM + 0xFC0));

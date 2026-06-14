@@ -186,7 +186,7 @@ void CSettings::RegisterSettings(void)
     RegisterSetting(Set_Logging_OGLWrapper, Data_DWORD_General, "OGLWrapper", "Logging", g_ModuleLogLevel[TraceOGLWrapper], nullptr);
     RegisterSetting(Set_Logging_RDPCommands, Data_DWORD_General, "RDPCommands", "Logging", g_ModuleLogLevel[TraceRDPCommands], nullptr);
 
-#ifndef ANDROID
+#ifdef _WIN32
     general_setting(Set_FullScreenRes, "FullScreenRes", GetCurrentResIndex());
 #endif
 
@@ -552,7 +552,7 @@ void CSettings::SetFullScreenRes(uint32_t value)
 void CSettings::ReadSettings()
 {
     SetScreenRes(GetSetting(Set_Resolution));
-#ifndef ANDROID
+#ifdef _WIN32
     SetFullScreenRes(GetSetting(Set_FullScreenRes));
 #endif
     m_vsync = GetSetting(Set_vsync) != 0;
@@ -826,7 +826,7 @@ void CSettings::WriteSettings(void)
 {
     m_InWriteSettings = true;
     SetSetting(Set_Resolution, m_ScreenRes);
-#ifndef ANDROID
+#ifdef _WIN32
     SetSetting(Set_FullScreenRes, m_FullScreenRes);
 #endif
     SetSetting(Set_vsync, m_vsync ? 1 : 0);

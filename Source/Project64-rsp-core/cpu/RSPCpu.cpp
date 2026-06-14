@@ -95,7 +95,7 @@ be greater than the number of cycles that the RSP should have performed.
 
 uint32_t DoRspCycles(uint32_t Cycles)
 {
-#if defined(__amd64__) || defined(_M_X64)
+#if (defined(__amd64__) || defined(_M_X64)) && !defined(PJ64_RSP_DISABLE_RECOMPILER)
     if (CRSPSettings::CPUMethod() == RSPCpuMethod::RecompilerTasks)
     {
         HLETaskBooter booter = RSPSystem.IsHleTask();

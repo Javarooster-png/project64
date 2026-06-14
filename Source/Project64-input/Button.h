@@ -1,6 +1,10 @@
 #pragma once
 #include <stdint.h>
+#ifdef _WIN32
 #include <guiddef.h>
+#else
+#include <Project64-linux/win_compat.h>
+#endif
 
 enum BtnType
 {

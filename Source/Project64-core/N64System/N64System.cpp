@@ -1871,9 +1871,13 @@ bool CN64System::LoadState(const char * FileName)
         {
             SaveFile.SetNameExtension(stdstr_f("%s.zip", SaveFile.GetNameExtension().c_str()).c_str());
         }
+#ifdef _WIN32
         zlib_filefunc64_def ffunc;
         fill_win32_filefunc64W(&ffunc);
         unzFile file = unzOpen2_64(stdstr(std::string(SaveFile)).ToUTF16().c_str(), &ffunc);
+#else
+        unzFile file = unzOpen64((const char *)SaveFile);
+#endif
         int port = -1;
         if (file != nullptr)
         {

@@ -11,7 +11,7 @@ enum class RSPCpuMethod
 #if defined(__i386__) || defined(_M_IX86)
     Recompiler = 1,
 #endif
-#if defined(__amd64__) || defined(_M_X64)
+#if (defined(__amd64__) || defined(_M_X64)) && !defined(PJ64_RSP_DISABLE_RECOMPILER)
     RecompilerTasks = 2,
 #endif
     HighLevelEmulation = 3,

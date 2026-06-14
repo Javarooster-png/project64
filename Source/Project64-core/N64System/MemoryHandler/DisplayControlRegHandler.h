@@ -1,8 +1,8 @@
 #pragma once
 #include "MemoryHandler.h"
 #include "SPRegistersHandler.h"
-#include <Project64-core\Logging.h>
-#include <Project64-core\Settings\DebugSettings.h>
+#include <Project64-core/Logging.h>
+#include <Project64-core/Settings/DebugSettings.h>
 #include <stdint.h>
 
 enum

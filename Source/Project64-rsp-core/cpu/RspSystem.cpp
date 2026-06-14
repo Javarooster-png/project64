@@ -3,7 +3,9 @@
 #include <Common/path.h>
 #include <Project64-rsp-core/RSPDebugger.h>
 #include <Project64-rsp-core/RSPInfo.h>
+#ifndef PJ64_RSP_DISABLE_RECOMPILER
 #include <Project64-rsp-core/Recompiler/RspRecompilerCPU-x86.h>
+#endif
 #include <Project64-rsp-core/Settings/RspSettings.h>
 #include <Project64-rsp-core/cpu/RSPCpu.h>
 #include <Project64-rsp-core/cpu/RSPInstruction-x64.h>
@@ -137,7 +139,7 @@ void CRSPSystem::Reset(RSP_INFO & Info)
     {
         m_SyncSystem->Reset(Info);
     }
-#if defined(__amd64__) || defined(_M_X64)
+#if (defined(__amd64__) || defined(_M_X64)) && !defined(PJ64_RSP_DISABLE_RECOMPILER)
     m_Recompiler.Reset();
 #endif
 }

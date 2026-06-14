@@ -306,11 +306,7 @@ bool CFile::ReadInterger(int32_t & Value)
     Value = Number;
     return true;
 #else
-    va_list args;
-    va_start(args, Format);
-    int Result = vfscanf((FILE *)m_hFile, "%d", args);
-    va_end(args);
-    return Result != 0;
+    return fscanf((FILE *)m_hFile, "%d", &Value) == 1;
 #endif
 }
 

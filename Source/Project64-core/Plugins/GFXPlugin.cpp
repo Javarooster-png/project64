@@ -208,7 +208,7 @@ bool CGfxPlugin::Initiate_1_4(CN64System * System, RenderWindow * Window)
         uint32_t * VI__Y_SCALE_REG;
 
         void(CALL * CheckInterrupts)(void);
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__linux__)
         void(CALL * SwapBuffers)(void);
 #endif
     } GFX_INFO;
@@ -225,7 +225,7 @@ bool CGfxPlugin::Initiate_1_4(CN64System * System, RenderWindow * Window)
     GFX_INFO Info = {0};
 
     Info.MemoryBswaped = true;
-#if defined(ANDROID) || defined(__ANDROID__)
+#if defined(ANDROID) || defined(__ANDROID__) || defined(__linux__)
     Info.SwapBuffers = SwapBuffers;
 #endif
     Info.hWnd = nullptr;
@@ -379,7 +379,7 @@ bool CGfxPlugin::Initiate_1_5(CN64System * System, RenderWindow * Window)
         uint32_t * VI__Y_SCALE_REG;
 
         void(CALL * CheckInterrupts)(void);
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__linux__)
         void(CALL * SwapBuffers)(void);
 #endif
     } GFX_INFO;
@@ -396,7 +396,7 @@ bool CGfxPlugin::Initiate_1_5(CN64System * System, RenderWindow * Window)
     GFX_INFO Info = {0};
 
     Info.MemoryBswaped = true;
-#if defined(ANDROID) || defined(__ANDROID__)
+#if defined(ANDROID) || defined(__ANDROID__) || defined(__linux__)
     Info.SwapBuffers = SwapBuffers;
 #endif
     Info.hWnd = nullptr;
@@ -532,7 +532,7 @@ void CGfxPlugin::UnloadPluginDetails(void)
     WriteTrace(TraceVideoPlugin, TraceDebug, "Done");
 }
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__linux__)
 void CGfxPlugin::SwapBuffers(void)
 {
     RenderWindow * render = g_Plugins ? g_Plugins->MainWindow() : nullptr;

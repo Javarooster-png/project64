@@ -1,7 +1,9 @@
 #include "RSPRegisterHandler.h"
 #include "RSPRegisters.h"
 #include <Project64-plugin-spec/Rsp.h>
+#ifndef PJ64_CORE_RSP_REGISTER_HANDLER_ONLY
 #include <Project64-rsp-core/cpu/RspSystem.h>
+#endif
 #include <Settings/Settings.h>
 #include <string.h>
 
@@ -25,6 +27,7 @@ RSPRegisterHandler::RSPRegisterHandler(uint32_t * SignalProcessorInterface, uint
 {
 }
 
+#ifndef PJ64_CORE_RSP_REGISTER_HANDLER_ONLY
 RSPRegisterHandler::RSPRegisterHandler(CRSPSystem & System) :
     SP_MEM_ADDR_REG(*System.m_SP_MEM_ADDR_REG),
     SP_DRAM_ADDR_REG(*System.m_SP_DRAM_ADDR_REG),
@@ -44,6 +47,7 @@ RSPRegisterHandler::RSPRegisterHandler(CRSPSystem & System) :
     m_IgnoreWrites(System.m_BaseSystem != nullptr)
 {
 }
+#endif
 
 void RSPRegisterHandler::SP_DMA_READ()
 {

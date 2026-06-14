@@ -175,8 +175,6 @@ private:
     void UnknownOpcode(void);
     uint32_t BranchIf(bool Condition);
 
-    typedef void (RSPOp::*Func)();
-
     Func Jump_Opcode[64];
     Func Jump_RegImm[32];
     Func Jump_Special[64];

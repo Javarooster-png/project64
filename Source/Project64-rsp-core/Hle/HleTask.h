@@ -56,7 +56,9 @@ public:
 
     HLETaskBooter IsHleTask(void);
     bool ProcessHleTask(void);
+#ifndef PJ64_RSP_DISABLE_RECOMPILER
     bool HleTaskRecompiler(HLETaskBooter booter);
+#endif
 
 private:
     CHleTask(void);

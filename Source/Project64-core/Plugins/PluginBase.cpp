@@ -162,7 +162,7 @@ void CPlugin::RomOpened(RenderWindow * Render)
         return;
     }
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__linux__)
     if (m_PluginInfo.Type == PLUGIN_TYPE_VIDEO)
     {
         WriteTrace(PluginTraceType(), TraceDebug, "Render = %p", Render);
@@ -194,7 +194,7 @@ void CPlugin::RomClose(RenderWindow * Render)
         return;
     }
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__linux__)
     if (m_PluginInfo.Type == PLUGIN_TYPE_VIDEO)
     {
         WriteTrace(PluginTraceType(), TraceDebug, "Render = %p", Render);

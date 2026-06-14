@@ -1,10 +1,10 @@
 #include "stdafx.h"
 
 #include "RomMemoryHandler.h"
-#include <Project64-core\N64System\Mips\Register.h>
-#include <Project64-core\N64System\N64Rom.h>
-#include <Project64-core\N64System\N64System.h>
-#include <Project64-core\N64System\SystemGlobals.h>
+#include <Project64-core/N64System/Mips/Register.h>
+#include <Project64-core/N64System/N64Rom.h>
+#include <Project64-core/N64System/N64System.h>
+#include <Project64-core/N64System/SystemGlobals.h>
 
 RomMemoryHandler::RomMemoryHandler(CN64System & System, CRegisters & Reg, CN64Rom & Rom) :
     m_PC(Reg.m_PROGRAM_COUNTER),

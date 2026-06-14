@@ -12,7 +12,7 @@
 #include <math.h>
 #include "3dmath.h"
 #include "ucode00.h"
-#include "util.h"
+#include "Util.h"
 
 int cur_mtx = 0;
 int billboarding = 0;

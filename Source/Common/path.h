@@ -10,11 +10,11 @@ public:
     {
         CURRENT_DIRECTORY = 1
     };
-#ifdef _WIN32
     enum DIR_MODULE_DIRECTORY
     {
         MODULE_DIRECTORY = 2
     };
+#ifdef _WIN32
     enum DIR_MODULE_FILE
     {
         MODULE_FILE = 3
@@ -53,8 +53,8 @@ public:
     CPath(const std::string & strPath, const std::string & NameExten);
 
     CPath(DIR_CURRENT_DIRECTORY sdt, const char * NameExten = nullptr);
-#ifdef _WIN32
     CPath(DIR_MODULE_DIRECTORY sdt, const char * NameExten = nullptr);
+#ifdef _WIN32
     CPath(DIR_MODULE_FILE sdt);
 #endif
     virtual ~CPath();
@@ -123,12 +123,10 @@ public:
         m_strPath.erase();
     }
     void CurrentDirectory();
-#ifdef _WIN32
     void Module();
     void Module(void * hInstance);
     void ModuleDirectory();
     void ModuleDirectory(void * hInstance);
-#endif
 
     // Directory information
     bool IsDirectory() const;

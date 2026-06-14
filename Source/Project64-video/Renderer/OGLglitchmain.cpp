@@ -34,6 +34,16 @@ used only in g_Notify->DisplayError when OpenGL extension loading fails on WGL
 
 #include <Settings/Settings.h>
 
+#ifdef _WIN32
+#define PJ64_GL_GET_PROC(name) wglGetProcAddress(name)
+#else
+extern "C" void (*glXGetProcAddressARB(const GLubyte * procName))(void);
+static void * PJ64_GL_GET_PROC(const char * name)
+{
+    return (void *)glXGetProcAddressARB((const GLubyte *)name);
+}
+#endif
+
 int screen_width, screen_height;
 
 static inline void opt_glCopyTexImage2D(GLenum target,
@@ -73,8 +83,6 @@ static inline void opt_glCopyTexImage2D(GLenum target,
 }
 #define glCopyTexImage2D opt_glCopyTexImage2D
 
-#ifdef _WIN32
-
 /*
 Some post-1.1 OpenGL functions can fail to be loaded through OpenGL extensions
 when running primitive OpenGL contexts on Microsoft Windows, specifically.
@@ -84,9 +92,11 @@ functions to dummy functions to prevent access violations, while also
 displaying error information showing the missing OpenGL support.
 */
 
+#ifndef GL_VERSION_1_3
 PFNGLACTIVETEXTUREARBPROC glActiveTextureARB;
-PFNGLBLENDFUNCSEPARATEEXTPROC glBlendFuncSeparateEXT;
 PFNGLMULTITEXCOORD2FARBPROC glMultiTexCoord2fARB;
+#endif
+PFNGLBLENDFUNCSEPARATEEXTPROC glBlendFuncSeparateEXT;
 PFNGLFOGCOORDFPROC glFogCoordfEXT;
 void APIENTRY dummy_glActiveTexture(GLenum/*texture*/)
 { /* GLX render opcode 197, req. OpenGL 1.3 (1.2 w/ ARB_multitexture) */
@@ -105,12 +115,14 @@ void APIENTRY dummy_glBlendFuncSeparate(GLenum, GLenum, GLenum, GLenum)
     g_Notify->DisplayError("glBlendFuncSeparate");
 }
 
+#ifdef _WIN32
 PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtensionsStringARB;
 const char * APIENTRY dummy_wglGetExtensionsString(HDC)
 {
     g_Notify->DisplayError("wglGetExtensionsString");
     return nullptr;
 }
+#endif
 
 PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT;
 PFNGLFRAMEBUFFERTEXTURE2DEXTPROC glFramebufferTexture2DEXT;
@@ -259,7 +271,6 @@ void APIENTRY dummy_glCompressedTexImage2D(GLenum, GLint, GLenum, GLsizei, GLsiz
 { /* GLX render opcode 215, req. OpenGL 1.3 (1.2 w/ ARB_texture_compression) */
     g_Notify->DisplayError("glCompressedTexImage2D");
 }
-#endif // _WIN32
 
 typedef struct
 {
@@ -461,19 +472,17 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
     pfd.cAuxBuffers = 1;
 
     int pfm;
-#else
-    fputs("ERROR: No GLX yet to start GL on [Free]BSD, Linux etc.\n", stderr);
 #endif // _WIN32
 
     WriteTrace(TraceGlitch, TraceDebug, "color_format: %d, origin_location: %d, nColBuffers: %d, nAuxBuffers: %d", color_format, origin_location, nColBuffers, nAuxBuffers);
 
-#ifdef _WIN32
     TMU_SIZE = ((g_settings->wrpVRAM() * 1024 * 1024) - g_width * g_height * 4 * 3) / 2;
 
     // Save screen resolution for hwfbe (hardware framebuffer emulation?), after resolution enumeration
     screen_width = g_width;
     screen_height = g_height;
 
+#ifdef _WIN32
     if ((HWND)gfx.hWnd != nullptr)
     {
         hDC = GetDC((HWND)gfx.hWnd);
@@ -534,15 +543,15 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
         WriteTrace(TraceGlitch, TraceWarning, "Your video card doesn't support GL_ARB_texture_mirrored_repeat extension");
     show_warning = 0;
 
-#ifdef _WIN32
-    glActiveTextureARB = (PFNGLACTIVETEXTUREARBPROC)wglGetProcAddress("glActiveTextureARB");
-    glMultiTexCoord2fARB = (PFNGLMULTITEXCOORD2FARBPROC)wglGetProcAddress("glMultiTexCoord2fARB");
+#ifndef GL_VERSION_1_3
+    glActiveTextureARB = (PFNGLACTIVETEXTUREARBPROC)PJ64_GL_GET_PROC("glActiveTextureARB");
+    glMultiTexCoord2fARB = (PFNGLMULTITEXCOORD2FARBPROC)PJ64_GL_GET_PROC("glMultiTexCoord2fARB");
 
     if (glActiveTextureARB == nullptr)
         glActiveTextureARB = (PFNGLACTIVETEXTUREARBPROC)dummy_glActiveTexture;
     if (glMultiTexCoord2fARB == nullptr)
         glMultiTexCoord2fARB = (PFNGLMULTITEXCOORD2FARBPROC)dummy_glMultiTexCoord2f;
-#endif // _WIN32
+#endif
 
     nbTextureUnits = 0;
     glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, (GLint *)&nbTextureUnits);
@@ -572,35 +581,30 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
         npot_support = 1;
     }
 
-#ifdef _WIN32
-    glBlendFuncSeparateEXT = (PFNGLBLENDFUNCSEPARATEEXTPROC)wglGetProcAddress("glBlendFuncSeparateEXT");
+    glBlendFuncSeparateEXT = (PFNGLBLENDFUNCSEPARATEEXTPROC)PJ64_GL_GET_PROC("glBlendFuncSeparateEXT");
     if (glBlendFuncSeparateEXT == nullptr)
         glBlendFuncSeparateEXT = (PFNGLBLENDFUNCSEPARATEEXTPROC)dummy_glBlendFuncSeparate;
-#endif // _WIN32
 
     if (isExtensionSupported("GL_EXT_fog_coord") == 0)
         fog_coord_support = 0;
     else
         fog_coord_support = 1;
 
-#ifdef _WIN32
-    glFogCoordfEXT = (PFNGLFOGCOORDFPROC)wglGetProcAddress("glFogCoordfEXT");
+    glFogCoordfEXT = (PFNGLFOGCOORDFPROC)PJ64_GL_GET_PROC("glFogCoordfEXT");
     if (glFogCoordfEXT == nullptr)
         glFogCoordfEXT = (PFNGLFOGCOORDFPROC)dummy_glFogCoordf;
-#endif // _WIN32
 
 #ifdef _WIN32
-    wglGetExtensionsStringARB = (PFNWGLGETEXTENSIONSSTRINGARBPROC)wglGetProcAddress("wglGetExtensionsStringARB");
+    wglGetExtensionsStringARB = (PFNWGLGETEXTENSIONSSTRINGARBPROC)PJ64_GL_GET_PROC("wglGetExtensionsStringARB");
     if (wglGetExtensionsStringARB == nullptr)
         wglGetExtensionsStringARB = (PFNWGLGETEXTENSIONSSTRINGARBPROC)dummy_wglGetExtensionsString;
 #endif // _WIN32
 
-#ifdef _WIN32
-    glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
-    glFramebufferTexture2DEXT = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)wglGetProcAddress("glFramebufferTexture2DEXT");
-    glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
-    glCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)wglGetProcAddress("glCheckFramebufferStatusEXT");
-    glDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)wglGetProcAddress("glDeleteFramebuffersEXT");
+    glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)PJ64_GL_GET_PROC("glBindFramebufferEXT");
+    glFramebufferTexture2DEXT = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)PJ64_GL_GET_PROC("glFramebufferTexture2DEXT");
+    glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)PJ64_GL_GET_PROC("glGenFramebuffersEXT");
+    glCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)PJ64_GL_GET_PROC("glCheckFramebufferStatusEXT");
+    glDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)PJ64_GL_GET_PROC("glDeleteFramebuffersEXT");
 
     if (glBindFramebufferEXT == nullptr)
         glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)dummy_glBindFramebuffer;
@@ -613,11 +617,11 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
     if (glDeleteFramebuffersEXT == nullptr)
         glDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)dummy_glDeleteFramebuffers;
 
-    glBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)wglGetProcAddress("glBindRenderbufferEXT");
-    glDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)wglGetProcAddress("glDeleteRenderbuffersEXT");
-    glGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)wglGetProcAddress("glGenRenderbuffersEXT");
-    glRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)wglGetProcAddress("glRenderbufferStorageEXT");
-    glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)wglGetProcAddress("glFramebufferRenderbufferEXT");
+    glBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)PJ64_GL_GET_PROC("glBindRenderbufferEXT");
+    glDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)PJ64_GL_GET_PROC("glDeleteRenderbuffersEXT");
+    glGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)PJ64_GL_GET_PROC("glGenRenderbuffersEXT");
+    glRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)PJ64_GL_GET_PROC("glRenderbufferStorageEXT");
+    glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)PJ64_GL_GET_PROC("glFramebufferRenderbufferEXT");
 
     if (glBindRenderbufferEXT == nullptr)
         glBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)dummy_glBindRenderbuffer;
@@ -629,7 +633,6 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
         glRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)dummy_glRenderbufferStorage;
     if (glFramebufferRenderbufferEXT == nullptr)
         glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)dummy_glFramebufferRenderbuffer;
-#endif // _WIN32
 
     use_fbo = g_settings->wrpFBO() && glFramebufferRenderbufferEXT;
 
@@ -640,25 +643,23 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
         isExtensionSupported("GL_ARB_fragment_shader") &&
         isExtensionSupported("GL_ARB_vertex_shader"))
     {
-#ifdef _WIN32
-        glCreateShaderObjectARB = (PFNGLCREATESHADEROBJECTARBPROC)wglGetProcAddress("glCreateShaderObjectARB");
-        glShaderSourceARB = (PFNGLSHADERSOURCEARBPROC)wglGetProcAddress("glShaderSourceARB");
-        glCompileShaderARB = (PFNGLCOMPILESHADERARBPROC)wglGetProcAddress("glCompileShaderARB");
-        glCreateProgramObjectARB = (PFNGLCREATEPROGRAMOBJECTARBPROC)wglGetProcAddress("glCreateProgramObjectARB");
-        glAttachObjectARB = (PFNGLATTACHOBJECTARBPROC)wglGetProcAddress("glAttachObjectARB");
-        glLinkProgramARB = (PFNGLLINKPROGRAMARBPROC)wglGetProcAddress("glLinkProgramARB");
-        glUseProgramObjectARB = (PFNGLUSEPROGRAMOBJECTARBPROC)wglGetProcAddress("glUseProgramObjectARB");
-        glGetUniformLocationARB = (PFNGLGETUNIFORMLOCATIONARBPROC)wglGetProcAddress("glGetUniformLocationARB");
-        glUniform1iARB = (PFNGLUNIFORM1IARBPROC)wglGetProcAddress("glUniform1iARB");
-        glUniform4iARB = (PFNGLUNIFORM4IARBPROC)wglGetProcAddress("glUniform4iARB");
-        glUniform4fARB = (PFNGLUNIFORM4FARBPROC)wglGetProcAddress("glUniform4fARB");
-        glUniform1fARB = (PFNGLUNIFORM1FARBPROC)wglGetProcAddress("glUniform1fARB");
-        glDeleteObjectARB = (PFNGLDELETEOBJECTARBPROC)wglGetProcAddress("glDeleteObjectARB");
-        glGetInfoLogARB = (PFNGLGETINFOLOGARBPROC)wglGetProcAddress("glGetInfoLogARB");
-        glGetObjectParameterivARB = (PFNGLGETOBJECTPARAMETERIVARBPROC)wglGetProcAddress("glGetObjectParameterivARB");
+        glCreateShaderObjectARB = (PFNGLCREATESHADEROBJECTARBPROC)PJ64_GL_GET_PROC("glCreateShaderObjectARB");
+        glShaderSourceARB = (PFNGLSHADERSOURCEARBPROC)PJ64_GL_GET_PROC("glShaderSourceARB");
+        glCompileShaderARB = (PFNGLCOMPILESHADERARBPROC)PJ64_GL_GET_PROC("glCompileShaderARB");
+        glCreateProgramObjectARB = (PFNGLCREATEPROGRAMOBJECTARBPROC)PJ64_GL_GET_PROC("glCreateProgramObjectARB");
+        glAttachObjectARB = (PFNGLATTACHOBJECTARBPROC)PJ64_GL_GET_PROC("glAttachObjectARB");
+        glLinkProgramARB = (PFNGLLINKPROGRAMARBPROC)PJ64_GL_GET_PROC("glLinkProgramARB");
+        glUseProgramObjectARB = (PFNGLUSEPROGRAMOBJECTARBPROC)PJ64_GL_GET_PROC("glUseProgramObjectARB");
+        glGetUniformLocationARB = (PFNGLGETUNIFORMLOCATIONARBPROC)PJ64_GL_GET_PROC("glGetUniformLocationARB");
+        glUniform1iARB = (PFNGLUNIFORM1IARBPROC)PJ64_GL_GET_PROC("glUniform1iARB");
+        glUniform4iARB = (PFNGLUNIFORM4IARBPROC)PJ64_GL_GET_PROC("glUniform4iARB");
+        glUniform4fARB = (PFNGLUNIFORM4FARBPROC)PJ64_GL_GET_PROC("glUniform4fARB");
+        glUniform1fARB = (PFNGLUNIFORM1FARBPROC)PJ64_GL_GET_PROC("glUniform1fARB");
+        glDeleteObjectARB = (PFNGLDELETEOBJECTARBPROC)PJ64_GL_GET_PROC("glDeleteObjectARB");
+        glGetInfoLogARB = (PFNGLGETINFOLOGARBPROC)PJ64_GL_GET_PROC("glGetInfoLogARB");
+        glGetObjectParameterivARB = (PFNGLGETOBJECTPARAMETERIVARBPROC)PJ64_GL_GET_PROC("glGetObjectParameterivARB");
 
-        glSecondaryColor3f = (PFNGLSECONDARYCOLOR3FPROC)wglGetProcAddress("glSecondaryColor3f");
-#endif // _WIN32
+        glSecondaryColor3f = (PFNGLSECONDARYCOLOR3FPROC)PJ64_GL_GET_PROC("glSecondaryColor3f");
     }
 
     if (isExtensionSupported("GL_EXT_texture_compression_s3tc") == 0 && show_warning)
@@ -666,8 +667,7 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
     if (isExtensionSupported("GL_3DFX_texture_compression_FXT1") == 0 && show_warning)
         WriteTrace(TraceGlitch, TraceWarning, "Your video card doesn't support GL_3DFX_texture_compression_FXT1 extension");
 
-#ifdef _WIN32
-    glCompressedTexImage2DARB = (PFNGLCOMPRESSEDTEXIMAGE2DPROC)wglGetProcAddress("glCompressedTexImage2DARB");
+    glCompressedTexImage2DARB = (PFNGLCOMPRESSEDTEXIMAGE2DPROC)PJ64_GL_GET_PROC("glCompressedTexImage2DARB");
 
     if (glCreateShaderObjectARB == nullptr)
         glCreateShaderObjectARB = (PFNGLCREATESHADEROBJECTARBPROC)dummy_glCreateShader;
@@ -704,7 +704,6 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
         glSecondaryColor3f = (PFNGLSECONDARYCOLOR3FPROC)dummy_glSecondaryColor3f;
     if (glCompressedTexImage2DARB == nullptr)
         glCompressedTexImage2DARB = (PFNGLCOMPRESSEDTEXIMAGE2DPROC)dummy_glCompressedTexImage2D;
-#endif
 
 #ifndef ANDROID
     glViewport(0, g_viewport_offset, g_width, g_height);
@@ -1464,6 +1463,10 @@ void gfxBufferSwap(uint32_t swap_interval)
 #ifdef _WIN32
     SwapBuffers(wglGetCurrentDC());
 #else // _WIN32
+    if (gfx.SwapBuffers != nullptr)
+    {
+        gfx.SwapBuffers();
+    }
 #endif // _WIN32
     for (i = 0; i < nb_fb; i++)
         fbs[i].buff_clear = 1;

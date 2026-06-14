@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
 #include "CartridgeDomain1Address1Handler.h"
-#include <Project64-core\N64System\Mips\Register.h>
-#include <Project64-core\N64System\N64Rom.h>
+#include <Project64-core/N64System/Mips/Register.h>
+#include <Project64-core/N64System/N64Rom.h>
 
 CartridgeDomain1Address1Handler::CartridgeDomain1Address1Handler(CRegisters & Reg, CN64Rom * DDRom) :
     m_Reg(Reg),

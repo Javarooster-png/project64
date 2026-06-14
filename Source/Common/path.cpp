@@ -264,7 +264,6 @@ CPath::CPath(DIR_CURRENT_DIRECTORY /*sdt*/, const char * NameExten)
     }
 }
 
-#ifdef _WIN32
 CPath::CPath(DIR_MODULE_DIRECTORY /*sdt*/, const char * NameExten)
 {
     // The directory where the executable of this app is
@@ -276,6 +275,7 @@ CPath::CPath(DIR_MODULE_DIRECTORY /*sdt*/, const char * NameExten)
     }
 }
 
+#ifdef _WIN32
 CPath::CPath(DIR_MODULE_FILE /*sdt*/)
 {
     // The directory where the executable of this app is
@@ -888,27 +888,40 @@ void CPath::CurrentDirectory()
 
 // Task: Set path to the name of specified module
 
-#ifdef _WIN32
 void CPath::Module(void * hInstance)
 {
+#ifdef _WIN32
     wchar_t buff_path[MAX_PATH];
     memset(buff_path, 0, sizeof(buff_path));
     GetModuleFileName((HINSTANCE)hInstance, buff_path, MAX_PATH);
     m_strPath = stdstr().FromUTF16(buff_path);
+#else
+    (void)hInstance;
+    CurrentDirectory();
+#endif
 }
 
 // Task: Set path to the name of current module
 
 void CPath::Module()
 {
+#ifdef _WIN32
     Module(m_hInst);
+#else
+    CurrentDirectory();
+#endif
 }
 
 // Task: Set path to the directory of specified module
 
 void CPath::ModuleDirectory(void * hInstance)
 {
+#ifdef _WIN32
     Module(hInstance);
+#else
+    (void)hInstance;
+    Module();
+#endif
     SetNameExtension("");
 }
 
@@ -919,7 +932,6 @@ void CPath::ModuleDirectory()
     Module();
     SetNameExtension("");
 }
-#endif
 
 // Post: Return TRUE if it is a directory
 // Task: Check if this path represents a directory

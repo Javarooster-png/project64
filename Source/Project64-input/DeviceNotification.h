@@ -1,4 +1,5 @@
 #pragma once
+#ifdef _WIN32
 #include "wtl.h"
 
 typedef CWinTraits<WS_OVERLAPPED, WS_EX_APPWINDOW> DeviceNotificationTraits;
@@ -21,3 +22,8 @@ private:
     int OnCreate(LPCREATESTRUCT lpCreateStruct);
     BOOL OnDeviceChange(UINT nEventType, DWORD_PTR dwData);
 };
+#else
+class DeviceNotification
+{
+};
+#endif

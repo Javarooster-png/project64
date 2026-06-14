@@ -15,6 +15,8 @@ Output: None
 
 EXPORT void CALL CloseDLL(void)
 {
+    delete g_InputPlugin;
+    g_InputPlugin = nullptr;
     CleanupInputSettings();
 }
 
@@ -224,9 +226,14 @@ EXPORT void CALL WM_KillFocus(uint32_t /*wParam*/, uint32_t /*lParam*/)
 
 EXPORT void CALL PluginLoaded(void)
 {
+    if (g_InputPlugin == nullptr)
+    {
+        g_InputPlugin = new CProject64Input(nullptr);
+    }
     SetupInputSettings();
 }
 
+#ifdef _WIN32
 #include <Windows.h>
 
 extern "C" int WINAPI DllMain(HINSTANCE hinst, DWORD fdwReason, LPVOID /*lpReserved*/)
@@ -242,3 +249,4 @@ extern "C" int WINAPI DllMain(HINSTANCE hinst, DWORD fdwReason, LPVOID /*lpReser
     }
     return TRUE;
 }
+#endif

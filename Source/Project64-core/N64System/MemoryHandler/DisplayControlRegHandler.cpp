@@ -1,11 +1,11 @@
 #include "stdafx.h"
 
 #include "SPRegistersHandler.h"
-#include <Project64-core\N64System\Mips\Register.h>
-#include <Project64-core\N64System\N64System.h>
-#include <Project64-core\N64System\SystemGlobals.h>
-#include <Project64-core\Plugins\GFXPlugin.h>
-#include <Project64-core\Plugins\Plugin.h>
+#include <Project64-core/N64System/Mips/Register.h>
+#include <Project64-core/N64System/N64System.h>
+#include <Project64-core/N64System/SystemGlobals.h>
+#include <Project64-core/Plugins/GFXPlugin.h>
+#include <Project64-core/Plugins/Plugin.h>
 
 DisplayControlRegHandler::DisplayControlRegHandler(CN64System & N64System, CPlugins * Plugins, CRegisters & Reg) :
     DisplayControlReg(Reg.m_Display_ControlReg),

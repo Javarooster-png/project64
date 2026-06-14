@@ -1,8 +1,18 @@
 #pragma once
 #include <Project64-rsp-core/Hle/HleTask.h>
 #include <Project64-rsp-core/RSPInfo.h>
+#ifdef PJ64_RSP_DISABLE_RECOMPILER
+class CRSPSystem;
+class CRSPRecompiler
+{
+public:
+    CRSPRecompiler(CRSPSystem &) {}
+    void Reset() {}
+};
+#else
 #include <Project64-rsp-core/Recompiler/RspRecompilerCPU-x64.h>
 #include <Project64-rsp-core/Recompiler/RspRecompilerCPU-x86.h>
+#endif
 #include <Project64-rsp-core/cpu/RSPInterpreterOps.h>
 #include <Project64-rsp-core/cpu/RSPRegisters.h>
 #include <Project64-rsp-core/cpu/RspPipelineStage.h>

@@ -9,7 +9,9 @@
 #include <Project64-rsp-core/Settings/RspSettings.h>
 #include <Settings/Settings.h>
 #include <chrono>
+#ifdef _WIN32
 #include <intrin.h>
+#endif
 #include <map>
 #include <thread>
 #include <vector>
@@ -31,8 +33,10 @@ class CRspProfiling
     uint32_t m_CurrentTimerAddr, CurrentDisplayCount;
 #if defined(_M_IX86) && defined(_MSC_VER)
     uint32_t m_StartTimeHi, m_StartTimeLo; // The current timer start time
-#else
+#elif defined(_WIN32)
     uint64_t m_StartTime;
+#else
+    std::chrono::high_resolution_clock::time_point m_StartTime;
 #endif
     PROFILE_ENRTIES m_Entries;
     double m_CpuFrequencyGHz;
@@ -46,8 +50,7 @@ public:
         QueryPerformanceFrequency(&frequency);
         m_CpuFrequencyGHz = MeasureCpuFrequencyGHz();
 #else
-        g_Notify->BreakPoint(__FILE__, __LINE__);
-        m_CpuFrequencyGHz = 0;
+        m_CpuFrequencyGHz = 0.000001;
 #endif
     }
 
@@ -67,10 +70,12 @@ public:
         }
         m_StartTimeHi = HiValue;
         m_StartTimeLo = LoValue;
-#else
+#elif defined(_WIN32)
         _mm_lfence();
         m_StartTime = __rdtsc();
         _mm_lfence();
+#else
+        m_StartTime = std::chrono::high_resolution_clock::now();
 #endif
         return OldTimerAddr;
     }
@@ -94,11 +99,14 @@ public:
         int64_t StopTime = ((uint64_t)HiValue << 32) + (uint64_t)LoValue;
         int64_t StartTime = ((uint64_t)m_StartTimeHi << 32) + (uint64_t)m_StartTimeLo;
         int64_t TimeTaken = StopTime - StartTime;
-#else
+#elif defined(_WIN32)
         _mm_lfence();
         uint64_t currentTime = __rdtsc();
         _mm_lfence();
         int64_t TimeTaken = currentTime - m_StartTime;
+#else
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        int64_t TimeTaken = std::chrono::duration_cast<std::chrono::nanoseconds>(currentTime - m_StartTime).count();
 #endif
         PROFILE_ENRTY Entry = m_Entries.find(m_CurrentTimerAddr);
         if (Entry != m_Entries.end())
@@ -127,6 +135,7 @@ public:
 
     double MeasureCpuFrequencyGHz()
     {
+#ifdef _WIN32
         DWORD_PTR oldMask = SetThreadAffinityMask(GetCurrentThread(), 1);
         auto start_time = std::chrono::high_resolution_clock::now();
         uint64_t start_cycles = __rdtsc();
@@ -137,6 +146,9 @@ public:
         double elapsed_seconds = std::chrono::duration<double>(end_time - start_time).count();
         uint64_t elapsed_cycles = end_cycles - start_cycles;
         return static_cast<double>(elapsed_cycles) / (elapsed_seconds * 1e9);
+#else
+        return 0.000001;
+#endif
     }
     void GenerateLog(void)
     {

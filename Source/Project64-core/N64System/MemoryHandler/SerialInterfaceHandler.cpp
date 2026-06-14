@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
 #include "SerialInterfaceHandler.h"
-#include <Project64-core\N64System\Mips\MemoryVirtualMem.h>
-#include <Project64-core\N64System\Mips\Register.h>
-#include <Project64-core\N64System\SystemGlobals.h>
+#include <Project64-core/N64System/Mips/MemoryVirtualMem.h>
+#include <Project64-core/N64System/Mips/Register.h>
+#include <Project64-core/N64System/SystemGlobals.h>
 
 SerialInterfaceReg::SerialInterfaceReg(uint32_t * Interface) :
     SI_DRAM_ADDR_REG(Interface[0]),

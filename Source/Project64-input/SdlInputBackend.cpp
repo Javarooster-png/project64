@@ -6,6 +6,11 @@
 #include <cstring>
 #include <set>
 
+static std::wstring Utf16FromAscii(const std::string & text)
+{
+    return std::wstring(text.begin(), text.end());
+}
+
 // Match dinput.h device type low bytes used by existing scan routing.
 static const uint32_t kDevTypeKeyboard = 0x13;
 static const uint32_t kDevTypeMouse = 0x12;
@@ -90,9 +95,14 @@ CSdlInput::~CSdlInput()
 void CSdlInput::Initiate(CONTROL_INFO * ControlInfo)
 {
     m_hWnd = (HWND)ControlInfo->hWnd;
+#ifdef _WIN32
     EnsurePumpWindow();
+#else
+    SDL_PumpEvents();
+#endif
 }
 
+#ifdef _WIN32
 namespace
 {
 const UINT_PTR kPumpTimerId = 1;
@@ -209,6 +219,38 @@ void CSdlInput::NotifyRomOpen(bool open)
     m_RomOpen = open;
     ApplyPumpTimerInterval();
 }
+#else
+void CSdlInput::EnsurePumpWindow(void)
+{
+}
+
+void CSdlInput::DestroyPumpWindow(void)
+{
+}
+
+void CSdlInput::ApplyPumpTimerInterval(void)
+{
+    if (m_SdlInited)
+    {
+        SDL_PumpEvents();
+    }
+}
+
+void CSdlInput::NotifyConfigDialogOpen(bool open)
+{
+    m_ConfigDialogOpen = open;
+}
+
+void CSdlInput::NotifyScanActive(bool active)
+{
+    m_ScanActive = active;
+}
+
+void CSdlInput::NotifyRomOpen(bool open)
+{
+    m_RomOpen = open;
+}
+#endif
 
 void CSdlInput::MapControllerDevice(N64CONTROLLER & Controller)
 {
@@ -530,7 +572,7 @@ std::wstring CSdlInput::ButtonAssignment(BUTTON & Button)
 
     if (Button.BtnType == BTNTYPE_JOYBUTTON)
     {
-        return stdstr_f("Button %u", (unsigned)Button.Offset).ToUTF16();
+        return Utf16FromAscii(stdstr_f("Button %u", (unsigned)Button.Offset));
     }
     if (Button.BtnType == BTNTYPE_JOYAXE)
     {
@@ -544,7 +586,7 @@ std::wstring CSdlInput::ButtonAssignment(BUTTON & Button)
         {
             AxisId = AxeID[Button.AxisID];
         }
-        return stdstr_f("%s%s", Offset.c_str(), AxisId.c_str()).ToUTF16();
+        return Utf16FromAscii(stdstr_f("%s%s", Offset.c_str(), AxisId.c_str()));
     }
     if (Button.BtnType == BTNTYPE_JOYPOV)
     {
@@ -558,16 +600,16 @@ std::wstring CSdlInput::ButtonAssignment(BUTTON & Button)
         {
             AxisId = AxeID[Button.AxisID + 2];
         }
-        return stdstr_f("%s%s", Offset.c_str(), AxisId.c_str()).ToUTF16();
+        return Utf16FromAscii(stdstr_f("%s%s", Offset.c_str(), AxisId.c_str()));
     }
     if (Button.BtnType == BTNTYPE_KEYBUTTON)
     {
         const char * name = SDL_GetScancodeName((SDL_Scancode)Button.Offset);
         if (name && name[0])
         {
-            return stdstr(name).ToUTF16();
+            return Utf16FromAscii(stdstr(name));
         }
-        return stdstr_f("Key %u", (unsigned)Button.Offset).ToUTF16();
+        return Utf16FromAscii(stdstr_f("Key %u", (unsigned)Button.Offset));
     }
     if (Button.BtnType == BTNTYPE_MOUSEAXE)
     {
@@ -581,11 +623,11 @@ std::wstring CSdlInput::ButtonAssignment(BUTTON & Button)
         {
             AxisId = AxeID[Button.AxisID];
         }
-        return stdstr_f("%s%s", Offset.c_str(), AxisId.c_str()).ToUTF16();
+        return Utf16FromAscii(stdstr_f("%s%s", Offset.c_str(), AxisId.c_str()));
     }
     if (Button.BtnType == BTNTYPE_MOUSEBUTTON)
     {
-        return stdstr_f("Button %u", (unsigned)Button.Offset).ToUTF16();
+        return Utf16FromAscii(stdstr_f("Button %u", (unsigned)Button.Offset));
     }
     if (Button.BtnType == BTNTYPE_UNASSIGNED)
     {
@@ -636,7 +678,7 @@ std::wstring CSdlInput::ControllerDevices(const N64CONTROLLER & Controller)
         {
             DeviceList += L", ";
         }
-        DeviceList += stdstr(DeviceItr->second.ProductName).ToUTF16();
+        DeviceList += Utf16FromAscii(stdstr(DeviceItr->second.ProductName));
     }
     if (UnknownDevice)
     {

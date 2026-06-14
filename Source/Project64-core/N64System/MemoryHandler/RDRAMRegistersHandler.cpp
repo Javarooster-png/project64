@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
 #include "RDRAMRegistersHandler.h"
-#include <Project64-core\N64System\Mips\Register.h>
-#include <Project64-core\N64System\SystemGlobals.h>
+#include <Project64-core/N64System/Mips/Register.h>
+#include <Project64-core/N64System/SystemGlobals.h>
 
 RDRAMRegistersReg::RDRAMRegistersReg(uint32_t * RdramInterface) :
     RDRAM_CONFIG_REG(RdramInterface[0]),

@@ -56,7 +56,7 @@ typedef struct
     uint32_t * VI_Y_SCALE_REG;
 
     void(*CheckInterrupts)(void);
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__linux__)
     void(CALL *SwapBuffers)(void);
 #endif
 } GFX_INFO;

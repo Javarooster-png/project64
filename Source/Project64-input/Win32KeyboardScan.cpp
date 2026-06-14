@@ -1,5 +1,6 @@
 #include "Win32KeyboardScan.h"
 #include <SDL.h>
+#ifdef _WIN32
 #include <Windows.h>
 
 #ifndef MAPVK_VK_TO_VSC
@@ -177,3 +178,8 @@ void Win32MergeKeyboardOrInto(uint8_t * keyboardState, size_t byteCount)
         }
     }
 }
+#else
+void Win32MergeKeyboardOrInto(uint8_t * /*keyboardState*/, size_t /*byteCount*/)
+{
+}
+#endif

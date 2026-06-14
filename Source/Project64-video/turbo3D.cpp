@@ -11,7 +11,7 @@
 #include <Project64-video/ucode.h>
 #include <math.h>
 #include "ucode00.h"
-#include "util.h"
+#include "Util.h"
 
 /******************Turbo3D microcode*************************/
 struct t3dGlobState

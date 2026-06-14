@@ -136,9 +136,13 @@ bool CN64Rom::AllocateAndLoadN64Image(const char * FileLoc, bool LoadBootCodeOnl
 
 bool CN64Rom::AllocateAndLoadZipImage(const char * FileLoc, bool LoadBootCodeOnly)
 {
+#ifdef _WIN32
     zlib_filefunc64_def ffunc;
     fill_win32_filefunc64W(&ffunc);
     unzFile file = unzOpen2_64(stdstr(FileLoc).ToUTF16().c_str(), &ffunc);
+#else
+    unzFile file = unzOpen64(FileLoc);
+#endif
     if (file == nullptr)
     {
         return false;

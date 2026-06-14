@@ -1,15 +1,15 @@
 #include "stdafx.h"
 
 #include "PeripheralInterfaceHandler.h"
-#include <Common\MemoryManagement.h>
-#include <Project64-core\Debugger.h>
-#include <Project64-core\N64System\Mips\Disk.h>
-#include <Project64-core\N64System\Mips\MemoryVirtualMem.h>
-#include <Project64-core\N64System\Mips\Register.h>
-#include <Project64-core\N64System\N64Disk.h>
-#include <Project64-core\N64System\N64Rom.h>
-#include <Project64-core\N64System\N64System.h>
-#include <Project64-core\N64System\SystemGlobals.h>
+#include <Common/MemoryManagement.h>
+#include <Project64-core/Debugger.h>
+#include <Project64-core/N64System/Mips/Disk.h>
+#include <Project64-core/N64System/Mips/MemoryVirtualMem.h>
+#include <Project64-core/N64System/Mips/Register.h>
+#include <Project64-core/N64System/N64Disk.h>
+#include <Project64-core/N64System/N64Rom.h>
+#include <Project64-core/N64System/N64System.h>
+#include <Project64-core/N64System/SystemGlobals.h>
 
 PeripheralInterfaceReg::PeripheralInterfaceReg(uint32_t * PeripheralInterface) :
     PI_DRAM_ADDR_REG(PeripheralInterface[0]),

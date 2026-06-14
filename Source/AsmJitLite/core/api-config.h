@@ -184,6 +184,11 @@
 #define ASMJIT_END_NAMESPACE                                                \
       __pragma(warning(pop))                                                  \
     }}
+#else
+#define ASMJIT_BEGIN_NAMESPACE                                              \
+    namespace asmjit { inline namespace ASMJIT_ABI_NAMESPACE {
+#define ASMJIT_END_NAMESPACE                                                \
+    }}
 #endif
 
 #define ASMJIT_BEGIN_SUB_NAMESPACE(NAMESPACE)                                 \
@@ -237,4 +242,3 @@
       return a;                                                               \
     }
 #endif
-

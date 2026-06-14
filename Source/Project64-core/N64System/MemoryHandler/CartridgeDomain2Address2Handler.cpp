@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 #include "CartridgeDomain2Address2Handler.h"
-#include <Project64-core\N64System\N64System.h>
+#include <Project64-core/N64System/N64System.h>
 
 CartridgeDomain2Address2Handler::CartridgeDomain2Address2Handler(CN64System & System, CRegisters & Reg, CMipsMemoryVM & MMU, bool SavesReadOnly) :
     m_System(System),

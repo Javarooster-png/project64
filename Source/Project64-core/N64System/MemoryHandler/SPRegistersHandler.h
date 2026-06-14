@@ -1,9 +1,9 @@
 #pragma once
 #include "MIPSInterfaceHandler.h"
 #include "MemoryHandler.h"
-#include <Project64-core\Logging.h>
-#include <Project64-core\Settings\DebugSettings.h>
-#include <Project64-core\Settings\GameSettings.h>
+#include <Project64-core/Logging.h>
+#include <Project64-core/Settings/DebugSettings.h>
+#include <Project64-core/Settings/GameSettings.h>
 #include <Project64-rsp-core/cpu/RSPRegisterHandler.h>
 #include <stdint.h>
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "MemoryHandler.h"
-#include <Project64-core\Settings\DebugSettings.h>
+#include <Project64-core/Settings/DebugSettings.h>
 
 enum
 {

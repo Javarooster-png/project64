@@ -433,7 +433,7 @@ int InitGfx()
     WriteTrace(TraceGlide64, TraceDebug, "-");
 
     ChangeSize();
-#ifndef ANDROID
+#ifdef _WIN32
     SetWindowDisplaySize((HWND)gfx.hWnd);
 #endif
     if (!gfxSstWinOpen(GFX_COLORFORMAT_RGBA, GFX_ORIGIN_UPPER_LEFT, 2, 1))

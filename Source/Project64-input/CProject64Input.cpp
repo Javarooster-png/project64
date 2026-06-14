@@ -29,7 +29,9 @@ void CProject64Input::DevicesChanged(void)
 
 void CProject64Input::DeviceAdded(void)
 {
+#ifdef _WIN32
     ConfigUIDeviceAdded();
+#endif
 }
 
 void CProject64Input::InitiateControllers(CONTROL_INFO * ControlInfo)
@@ -231,17 +233,23 @@ bool CProject64Input::ResetShortcuts(SHORTCUTS& Shortcuts)
 
 void CProject64Input::LockMouse()
 {
+#ifdef _WIN32
     if (IsMouseUsed() == false) return UnlockMouse();
     if (m_MouseLock == true) return;
     PostMessage((HWND)m_ControlInfo.hWnd, WM_HIDE_CUROSR, false, 0);
     m_MouseLock = true;
+#endif
 }
 
 void CProject64Input::UnlockMouse()
 {
+#ifdef _WIN32
     if (m_MouseLock == false) return;
     PostMessage((HWND)m_ControlInfo.hWnd, WM_HIDE_CUROSR, true, 0);
     m_MouseLock = false;
+#else
+    m_MouseLock = false;
+#endif
 }
 
 void CProject64Input::LockMouseSwitch()
@@ -270,7 +278,9 @@ bool CProject64Input::IsMouseUsed()
 
 void CProject64Input::LockCursor()
 {
+#ifdef _WIN32
     RECT rect;
     GetWindowRect((HWND)m_ControlInfo.hWnd, &rect);
     SetCursorPos((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2);
+#endif
 }

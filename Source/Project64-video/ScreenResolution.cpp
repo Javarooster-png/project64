@@ -1,5 +1,5 @@
 #include "ScreenResolution.h"
-#include "settings.h"
+#include "Settings.h"
 #include "trace.h"
 #ifdef _WIN32
 #include <Windows.h>

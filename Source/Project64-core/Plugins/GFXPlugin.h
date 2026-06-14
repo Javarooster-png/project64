@@ -52,7 +52,7 @@ private:
     bool Initiate_1_4(CN64System * System, RenderWindow * Window);
     bool Initiate_1_5(CN64System * System, RenderWindow * Window);
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__linux__)
     static void SwapBuffers(void);
 #endif
     static void CALL DummyDrawScreen(void)

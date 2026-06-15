@@ -409,42 +409,42 @@ target_link_libraries(GLideN64 PRIVATE
     OpenGL::GL
     ${OPENGL_LEGACY_GL_LIBRARY})
 
-add_library(Project64-input-android SHARED
+add_library(Project64-input-linux SHARED
     Source/Project64-input/CProject64Input.cpp
     Source/Project64-input/InputMain.cpp
     Source/Project64-input/InputSettings.cpp
     Source/Project64-input/SdlInputBackend.cpp
     Source/Project64-input/Win32KeyboardScan.cpp)
-set_target_properties(Project64-input-android PROPERTIES
-    OUTPUT_NAME Project64-input-android
+set_target_properties(Project64-input-linux PROPERTIES
+    OUTPUT_NAME Project64-input-linux
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
-target_include_directories(Project64-input-android PRIVATE
+target_include_directories(Project64-input-linux PRIVATE
     "${PJ64_SOURCE}"
     "${PJ64_SOURCE}/Project64-input"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/Project64-input"
     "${CMAKE_CURRENT_BINARY_DIR}/generated"
     ${SDL2_INCLUDE_DIRS})
-target_compile_options(Project64-input-android PRIVATE
+target_compile_options(Project64-input-linux PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
     $<$<COMPILE_LANGUAGE:CXX>:-include>
     $<$<COMPILE_LANGUAGE:CXX>:${PJ64_SOURCE}/Project64-linux/linux_force_include.h>
     ${SDL2_CFLAGS_OTHER})
-target_link_options(Project64-input-android PRIVATE -Wl,-Bsymbolic)
-target_link_libraries(Project64-input-android PRIVATE
+target_link_options(Project64-input-linux PRIVATE -Wl,-Bsymbolic)
+target_link_libraries(Project64-input-linux PRIVATE
     Common
     settings
     ${SDL2_LIBRARIES})
 
-add_library(Project64-audio-android SHARED
+add_library(Project64-audio-linux SHARED
     Source/Project64-linux/stub_audio.cpp)
-set_target_properties(Project64-audio-android PROPERTIES
-    OUTPUT_NAME Project64-audio-android
+set_target_properties(Project64-audio-linux PROPERTIES
+    OUTPUT_NAME Project64-audio-linux
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
-target_include_directories(Project64-audio-android PRIVATE
+target_include_directories(Project64-audio-linux PRIVATE
     "${PJ64_SOURCE}"
     ${SDL2_INCLUDE_DIRS})
-target_compile_options(Project64-audio-android PRIVATE ${SDL2_CFLAGS_OTHER})
-target_link_libraries(Project64-audio-android PRIVATE ${SDL2_LIBRARIES})
+target_compile_options(Project64-audio-linux PRIVATE ${SDL2_CFLAGS_OTHER})
+target_link_libraries(Project64-audio-linux PRIVATE ${SDL2_LIBRARIES})
 
 file(GLOB_RECURSE PROJECT64_RSP_CORE_SOURCES CONFIGURE_DEPENDS
     "${PJ64_SOURCE}/Project64-rsp-core/*.cpp")

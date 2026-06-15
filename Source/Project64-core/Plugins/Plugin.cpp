@@ -290,42 +290,50 @@ bool CPlugins::Initiate(CN64System * System)
     // Check to make sure we have the plugin available to be used
     if (m_Gfx == nullptr)
     {
+        g_Notify->DisplayError(stdstr_f("Graphics plugin failed to load from %s", (const char *)m_PluginDir).c_str());
         return false;
     }
     if (m_Audio == nullptr)
     {
+        g_Notify->DisplayError(stdstr_f("Audio plugin failed to load from %s", (const char *)m_PluginDir).c_str());
         return false;
     }
     if (m_RSP == nullptr)
     {
+        g_Notify->DisplayError(stdstr_f("RSP plugin failed to load from %s", (const char *)m_PluginDir).c_str());
         return false;
     }
     if (m_Control == nullptr)
     {
+        g_Notify->DisplayError(stdstr_f("Controller plugin failed to load from %s", (const char *)m_PluginDir).c_str());
         return false;
     }
 
     WriteTrace(TraceVideoPlugin, TraceDebug, "GFX initiate starting");
     if (!m_Gfx->Initiate(System, m_MainWindow))
     {
+        g_Notify->DisplayError("Graphics plugin failed to initialize");
         return false;
     }
     WriteTrace(TraceVideoPlugin, TraceDebug, "GFX initiate done");
     WriteTrace(TraceAudioPlugin, TraceDebug, "Audio initiate starting");
     if (!m_Audio->Initiate(System, m_MainWindow))
     {
+        g_Notify->DisplayError("Audio plugin failed to initialize");
         return false;
     }
     WriteTrace(TraceAudioPlugin, TraceDebug, "Audio initiate done");
     WriteTrace(TraceControllerPlugin, TraceDebug, "Control initiate starting");
     if (!m_Control->Initiate(System, m_MainWindow))
     {
+        g_Notify->DisplayError("Controller plugin failed to initialize");
         return false;
     }
     WriteTrace(TraceControllerPlugin, TraceDebug, "Control initiate done");
     WriteTrace(TraceRSPPlugin, TraceDebug, "RSP initiate starting");
     if (!m_RSP->Initiate(this, System))
     {
+        g_Notify->DisplayError("RSP plugin failed to initialize");
         return false;
     }
     WriteTrace(TraceRSPPlugin, TraceDebug, "RSP initiate done");
@@ -377,6 +385,11 @@ bool CPlugins::Reset(CN64System * System)
 
     CreatePlugins();
 
+    if (!m_initilized || (System != nullptr && !g_Settings->LoadBool(GameRunning_CPU_Running)))
+    {
+        return Initiate(System);
+    }
+
     if (m_Gfx && bGfxChange)
     {
         WriteTrace(TraceVideoPlugin, TraceDebug, "GFX initiate starting");
@@ -418,6 +431,7 @@ bool CPlugins::Reset(CN64System * System)
     {
         System->RefreshSyncToAudio();
     }
+    m_initilized = true;
     WriteTrace(TracePlugins, TraceDebug, "Done");
     return true;
 }

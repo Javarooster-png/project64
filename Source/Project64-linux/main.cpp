@@ -5,6 +5,7 @@
 #include <Project64-core/N64System/N64System.h>
 #include <Project64-core/N64System/SystemGlobals.h>
 #include <Project64-core/Notification.h>
+#include <Project64-core/Multilanguage.h>
 #include <Project64-core/Plugins/GFXPlugin.h>
 #include <Project64-core/Plugins/Plugin.h>
 #include <Project64-core/Settings.h>
@@ -37,7 +38,7 @@ public:
 
     void DisplayError(LanguageStringID StringID) const override
     {
-        wxLogError("Language string %d", (int)StringID);
+        wxLogError("%s", GS(StringID));
     }
 
     void FatalError(const char * Message) const override
@@ -47,7 +48,7 @@ public:
 
     void FatalError(LanguageStringID StringID) const override
     {
-        wxLogFatalError("Language string %d", (int)StringID);
+        wxLogFatalError("%s", GS(StringID));
     }
 
     void DisplayWarning(const char * Message) const override
@@ -57,7 +58,7 @@ public:
 
     void DisplayWarning(LanguageStringID StringID) const override
     {
-        wxLogWarning("Language string %d", (int)StringID);
+        wxLogWarning("%s", GS(StringID));
     }
 
     void DisplayMessage(int /*DisplayTime*/, const char * Message) const override
@@ -70,7 +71,7 @@ public:
 
     void DisplayMessage(int /*DisplayTime*/, LanguageStringID StringID) const override
     {
-        wxLogStatus("Language string %d", (int)StringID);
+        wxLogStatus("%s", GS(StringID));
     }
 
     void DisplayMessage2(const char * Message) const override
@@ -903,9 +904,14 @@ public:
         }
 
         g_Plugins->SetRenderWindows(&m_MainRenderWindow, &m_SyncRenderWindow);
-        g_Settings->SaveString(Directory_Plugin, "build-linux");
+        g_Settings->SaveString(Directory_PluginSelected, (const char *)executablePath);
+        g_Settings->SaveBool(Directory_PluginUseSelected, true);
         g_Settings->SaveString(Plugin_GFX_Current, "libGLideN64.so");
         g_Settings->SaveString(Game_Plugin_Gfx, "libGLideN64.so");
+        g_Settings->SaveString(Plugin_AUDIO_Current, "libProject64-audio-linux.so");
+        g_Settings->SaveString(Game_Plugin_Audio, "libProject64-audio-linux.so");
+        g_Settings->SaveString(Plugin_CONT_Current, "libProject64-input-linux.so");
+        g_Settings->SaveString(Game_Plugin_Controller, "libProject64-input-linux.so");
         g_Settings->SaveBool(Setting_ForceInterpreterCPU, true);
 
         Project64Frame * frame = new Project64Frame(m_MainRenderWindow, m_SyncRenderWindow);

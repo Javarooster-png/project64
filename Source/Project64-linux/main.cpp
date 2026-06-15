@@ -25,7 +25,10 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <limits.h>
+#include <sys/stat.h>
 #include <strings.h>
+#include <unistd.h>
 
 class LinuxNotification :
     public CNotification
@@ -244,6 +247,82 @@ extern "C" void Project64LinuxGfxThreadDone()
     {
         render->GfxThreadDone();
     }
+}
+
+static std::string ResolveLinuxPluginDirectory(const CPath & moduleDirectory, int argc, char ** argv)
+{
+    auto directoryContainsPlugins = [](const std::string & directory) {
+        std::string fileName = directory;
+        if (!fileName.empty() && fileName[fileName.size() - 1] != '/')
+        {
+            fileName += "/";
+        }
+        fileName += "libGLideN64.so";
+
+        struct stat fileInfo;
+        return stat(fileName.c_str(), &fileInfo) == 0 && S_ISREG(fileInfo.st_mode);
+    };
+
+    auto normalizeDirectory = [](const std::string & directory) {
+        char resolved[PATH_MAX];
+        if (realpath(directory.c_str(), resolved) != nullptr)
+        {
+            return std::string(resolved);
+        }
+        return directory;
+    };
+
+    auto parentDirectory = [](const std::string & path) {
+        size_t slash = path.find_last_of('/');
+        if (slash == std::string::npos)
+        {
+            return std::string();
+        }
+        if (slash == 0)
+        {
+            return std::string("/");
+        }
+        return path.substr(0, slash);
+    };
+
+    std::vector<std::string> candidates;
+    candidates.emplace_back((const char *)moduleDirectory);
+
+    if (argc > 0 && argv != nullptr && argv[0] != nullptr && argv[0][0] != '\0')
+    {
+        std::string executablePath(argv[0]);
+        if (executablePath.find('/') != std::string::npos && executablePath[0] != '/')
+        {
+            char currentDirectory[PATH_MAX];
+            if (getcwd(currentDirectory, sizeof(currentDirectory)) != nullptr)
+            {
+                executablePath = std::string(currentDirectory) + "/" + executablePath;
+            }
+        }
+        candidates.emplace_back(parentDirectory(executablePath));
+    }
+
+    char currentDirectory[PATH_MAX];
+    if (getcwd(currentDirectory, sizeof(currentDirectory)) != nullptr)
+    {
+        candidates.emplace_back(std::string(currentDirectory) + "/build-linux");
+    }
+    candidates.emplace_back(std::string((const char *)moduleDirectory) + "/build-linux");
+
+    for (const std::string & candidate : candidates)
+    {
+        if (candidate.empty())
+        {
+            continue;
+        }
+        std::string normalized = normalizeDirectory(candidate);
+        if (directoryContainsPlugins(normalized))
+        {
+            return normalized;
+        }
+    }
+
+    return (const char *)moduleDirectory;
 }
 
 enum LinuxMenuId
@@ -904,7 +983,7 @@ public:
         }
 
         g_Plugins->SetRenderWindows(&m_MainRenderWindow, &m_SyncRenderWindow);
-        g_Settings->SaveString(Directory_PluginSelected, (const char *)executablePath);
+        g_Settings->SaveString(Directory_PluginSelected, ResolveLinuxPluginDirectory(executablePath, m_Argc, m_Argv));
         g_Settings->SaveBool(Directory_PluginUseSelected, true);
         g_Settings->SaveString(Plugin_GFX_Current, "libGLideN64.so");
         g_Settings->SaveString(Game_Plugin_Gfx, "libGLideN64.so");

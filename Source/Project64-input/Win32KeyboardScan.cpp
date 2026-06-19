@@ -179,7 +179,79 @@ void Win32MergeKeyboardOrInto(uint8_t * keyboardState, size_t byteCount)
     }
 }
 #else
-void Win32MergeKeyboardOrInto(uint8_t * /*keyboardState*/, size_t /*byteCount*/)
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+
+struct LinuxKeyMap
 {
+    SDL_Scancode Scancode;
+    KeySym Symbol;
+};
+
+static const LinuxKeyMap g_linuxKeyMap[] = {
+    { SDL_SCANCODE_A, XK_a },
+    { SDL_SCANCODE_B, XK_b },
+    { SDL_SCANCODE_C, XK_c },
+    { SDL_SCANCODE_D, XK_d },
+    { SDL_SCANCODE_I, XK_i },
+    { SDL_SCANCODE_J, XK_j },
+    { SDL_SCANCODE_K, XK_k },
+    { SDL_SCANCODE_L, XK_l },
+    { SDL_SCANCODE_Q, XK_q },
+    { SDL_SCANCODE_R, XK_r },
+    { SDL_SCANCODE_S, XK_s },
+    { SDL_SCANCODE_W, XK_w },
+    { SDL_SCANCODE_X, XK_x },
+    { SDL_SCANCODE_RETURN, XK_Return },
+    { SDL_SCANCODE_SPACE, XK_space },
+    { SDL_SCANCODE_UP, XK_Up },
+    { SDL_SCANCODE_DOWN, XK_Down },
+    { SDL_SCANCODE_LEFT, XK_Left },
+    { SDL_SCANCODE_RIGHT, XK_Right },
+};
+
+static Display * LinuxInputDisplay()
+{
+    static bool s_initialized = false;
+    static Display * s_display = nullptr;
+
+    if (!s_initialized)
+    {
+        XInitThreads();
+        s_display = XOpenDisplay(nullptr);
+        s_initialized = true;
+    }
+    return s_display;
+}
+
+void Win32MergeKeyboardOrInto(uint8_t * keyboardState, size_t byteCount)
+{
+    if (keyboardState == nullptr || byteCount == 0)
+    {
+        return;
+    }
+
+    Display * display = LinuxInputDisplay();
+    if (display == nullptr)
+    {
+        return;
+    }
+
+    char keys[32] = {};
+    XQueryKeymap(display, keys);
+
+    for (size_t i = 0, n = sizeof(g_linuxKeyMap) / sizeof(g_linuxKeyMap[0]); i < n; ++i)
+    {
+        const KeyCode code = XKeysymToKeycode(display, g_linuxKeyMap[i].Symbol);
+        const size_t scancode = (size_t)g_linuxKeyMap[i].Scancode;
+        if (code == 0 || scancode >= byteCount)
+        {
+            continue;
+        }
+        if ((keys[code / 8] & (1 << (code % 8))) != 0)
+        {
+            keyboardState[scancode] = 0xFF;
+        }
+    }
 }
 #endif

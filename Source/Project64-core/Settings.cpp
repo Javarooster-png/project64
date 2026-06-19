@@ -387,7 +387,7 @@ void CSettings::AddHowToHandleSetting(const char * BaseDirectory)
 #endif
 #else
     AddHandler(Plugin_RSP_Current, new CSettingTypeApplication("Plugin", "RSP Dll", "libPlugin-rsp.so"));
-    AddHandler(Plugin_GFX_Current, new CSettingTypeApplication("Plugin", "Graphics Dll", "libGLideN64.so"));
+    AddHandler(Plugin_GFX_Current, new CSettingTypeApplication("Plugin", "Graphics Dll", "libparallel-rdp-pj64.so"));
     AddHandler(Plugin_AUDIO_Current, new CSettingTypeApplication("Plugin", "Audio Dll", "libProject64-audio-linux.so"));
     AddHandler(Plugin_CONT_Current, new CSettingTypeApplication("Plugin", "Controller Dll", "libProject64-input-linux.so"));
 #endif

@@ -128,15 +128,22 @@ bool DisplayControlRegHandler::Write32(uint32_t Address, uint32_t Value, uint32_
         }
         if ((MaskedValue & DPC_CLR_TMEM_CTR) != 0)
         {
+            DPC_TMEM_REG = 0;
             DPC_STATUS_REG &= ~DPC_STATUS_TMEM_BUSY;
         }
         if ((MaskedValue & DPC_CLR_PIPE_CTR) != 0)
         {
+            DPC_PIPEBUSY_REG = 0;
             DPC_STATUS_REG &= ~DPC_STATUS_PIPE_BUSY;
         }
         if ((MaskedValue & DPC_CLR_CMD_CTR) != 0)
         {
+            DPC_BUFBUSY_REG = 0;
             DPC_STATUS_REG &= ~DPC_STATUS_CMD_BUSY;
+        }
+        if ((MaskedValue & DPC_CLR_CLOCK_CTR) != 0)
+        {
+            DPC_CLOCK_REG = 0;
         }
         if ((MaskedValue & DPC_CLR_FREEZE) != 0)
         {

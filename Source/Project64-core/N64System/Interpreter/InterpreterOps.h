@@ -113,6 +113,8 @@ private:
     void LD_32();
     void SC();
     void SC_32();
+    void SCD();
+    void SCD_32();
     void SWC1();
     void SWC1_32();
     void SDC1();
@@ -201,6 +203,7 @@ private:
     void COP0_CO_TLBWR();
     void COP0_CO_TLBP();
     void COP0_CO_ERET();
+    void COP0_CO_EMUX();
 
     // COP1 functions
     void CPO1_UNIMPLEMENTED_OP(void);

@@ -36,32 +36,38 @@ class LinuxNotification :
 public:
     void DisplayError(const char * Message) const override
     {
-        wxLogError("%s", Message ? Message : "");
+        const char * text = NormalizeMessage(Message);
+        fprintf(stderr, "Project64-linux error: %s\n", text);
+        wxLogError("%s", text);
     }
 
     void DisplayError(LanguageStringID StringID) const override
     {
-        wxLogError("%s", GS(StringID));
+        DisplayError(GS(StringID));
     }
 
     void FatalError(const char * Message) const override
     {
-        wxLogFatalError("%s", Message ? Message : "");
+        const char * text = NormalizeMessage(Message);
+        fprintf(stderr, "Project64-linux fatal: %s\n", text);
+        wxLogFatalError("%s", text);
     }
 
     void FatalError(LanguageStringID StringID) const override
     {
-        wxLogFatalError("%s", GS(StringID));
+        FatalError(GS(StringID));
     }
 
     void DisplayWarning(const char * Message) const override
     {
-        wxLogWarning("%s", Message ? Message : "");
+        const char * text = NormalizeMessage(Message);
+        fprintf(stderr, "Project64-linux warning: %s\n", text);
+        wxLogWarning("%s", text);
     }
 
     void DisplayWarning(LanguageStringID StringID) const override
     {
-        wxLogWarning("%s", GS(StringID));
+        DisplayWarning(GS(StringID));
     }
 
     void DisplayMessage(int /*DisplayTime*/, const char * Message) const override
@@ -111,6 +117,12 @@ public:
 
     void ChangeFullScreen(void) const override
     {
+    }
+
+private:
+    static const char * NormalizeMessage(const char * Message)
+    {
+        return Message != nullptr && *Message != '\0' ? Message : "(empty notification message)";
     }
 };
 
@@ -196,21 +208,29 @@ public:
         SDL_GL_SetSwapInterval(1);
         SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
         DrawBlankFrame();
-        SDL_GL_MakeCurrent(m_Window, nullptr);
         return true;
     }
 
     bool PumpEvents()
     {
+        SDL_PumpEvents();
         SDL_Event event;
-        while (SDL_PollEvent(&event))
+        while (SDL_PeepEvents(&event, 1, SDL_PEEKEVENT, SDL_QUIT, SDL_QUIT) > 0)
         {
-            if (event.type == SDL_QUIT)
-            {
-                return false;
-            }
+            return false;
         }
         return true;
+    }
+
+    bool GetDrawableSize(int & width, int & height)
+    {
+        EnsureCreated();
+        if (m_Window == nullptr)
+        {
+            return false;
+        }
+        SDL_GL_GetDrawableSize(m_Window, &width, &height);
+        return width > 0 && height > 0;
     }
 
 private:
@@ -247,6 +267,35 @@ extern "C" void Project64LinuxGfxThreadDone()
     {
         render->GfxThreadDone();
     }
+}
+
+extern "C" int Project64LinuxGetDrawableSize(int * width, int * height)
+{
+    RenderWindow * render = g_Plugins != nullptr ? g_Plugins->MainWindow() : nullptr;
+    LinuxRenderWindow * linuxRender = dynamic_cast<LinuxRenderWindow *>(render);
+    if (linuxRender == nullptr || width == nullptr || height == nullptr)
+    {
+        return 0;
+    }
+    return linuxRender->GetDrawableSize(*width, *height) ? 1 : 0;
+}
+
+extern "C" void Project64LinuxUpdateHiddenRdramFromRdp(const void * hiddenRdram, size_t hiddenRdramSize, uint32_t rdramOffset, uint32_t byteCount)
+{
+    if (g_MMU == nullptr || hiddenRdram == nullptr || hiddenRdramSize == 0 || byteCount == 0)
+    {
+        return;
+    }
+    g_MMU->UpdateHiddenRdramFromRdp(static_cast<const uint8_t *>(hiddenRdram), hiddenRdramSize, rdramOffset, byteCount);
+}
+
+extern "C" void Project64LinuxCopyHiddenRdramToRdp(void * hiddenRdram, size_t hiddenRdramSize, uint32_t rdramOffset, uint32_t byteCount)
+{
+    if (g_MMU == nullptr || hiddenRdram == nullptr || hiddenRdramSize == 0 || byteCount == 0)
+    {
+        return;
+    }
+    g_MMU->CopyHiddenRdramToRdp(static_cast<uint8_t *>(hiddenRdram), hiddenRdramSize, rdramOffset, byteCount);
 }
 
 static std::string ResolveLinuxPluginDirectory(const CPath & moduleDirectory, int argc, char ** argv)
@@ -433,7 +482,8 @@ private:
         grid->AddGrowableCol(1, 1);
 
         m_PluginDir = AddDirectoryPicker(panel, grid, "Plugin directory", g_Settings->LoadStringVal(Directory_Plugin));
-        m_GfxPlugin = AddTextBox(panel, grid, "Graphics plugin", g_Settings->LoadStringVal(Plugin_GFX_Current));
+        m_GfxPlugin = AddComboBox(panel, grid, "Graphics plugin", g_Settings->LoadStringVal(Plugin_GFX_Current),
+            {"libGLideN64.so", "libparallel-rdp-pj64.so"});
         m_AudioPlugin = AddTextBox(panel, grid, "Audio plugin", g_Settings->LoadStringVal(Plugin_AUDIO_Current));
         m_InputPlugin = AddTextBox(panel, grid, "Controller plugin", g_Settings->LoadStringVal(Plugin_CONT_Current));
         m_RspPlugin = AddTextBox(panel, grid, "RSP plugin", g_Settings->LoadStringVal(Plugin_RSP_Current));
@@ -471,6 +521,19 @@ private:
     {
         grid->Add(new wxStaticText(parent, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
         wxTextCtrl * control = new wxTextCtrl(parent, wxID_ANY, value);
+        grid->Add(control, 1, wxEXPAND);
+        return control;
+    }
+
+    wxComboBox * AddComboBox(wxWindow * parent, wxFlexGridSizer * grid, const char * label, const std::string & value, std::initializer_list<const char *> choices)
+    {
+        grid->Add(new wxStaticText(parent, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+        wxArrayString items;
+        for (const char * choice : choices)
+        {
+            items.Add(choice);
+        }
+        wxComboBox * control = new wxComboBox(parent, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, items, wxCB_DROPDOWN);
         grid->Add(control, 1, wxEXPAND);
         return control;
     }
@@ -525,7 +588,7 @@ private:
     wxDirPickerCtrl * m_ScreenshotDir = nullptr;
     wxDirPickerCtrl * m_NativeSaveDir = nullptr;
     wxDirPickerCtrl * m_StateSaveDir = nullptr;
-    wxTextCtrl * m_GfxPlugin = nullptr;
+    wxComboBox * m_GfxPlugin = nullptr;
     wxTextCtrl * m_AudioPlugin = nullptr;
     wxTextCtrl * m_InputPlugin = nullptr;
     wxTextCtrl * m_RspPlugin = nullptr;
@@ -985,8 +1048,6 @@ public:
         g_Plugins->SetRenderWindows(&m_MainRenderWindow, &m_SyncRenderWindow);
         g_Settings->SaveString(Directory_PluginSelected, ResolveLinuxPluginDirectory(executablePath, m_Argc, m_Argv));
         g_Settings->SaveBool(Directory_PluginUseSelected, true);
-        g_Settings->SaveString(Plugin_GFX_Current, "libGLideN64.so");
-        g_Settings->SaveString(Game_Plugin_Gfx, "libGLideN64.so");
         g_Settings->SaveString(Plugin_AUDIO_Current, "libProject64-audio-linux.so");
         g_Settings->SaveString(Game_Plugin_Audio, "libProject64-audio-linux.so");
         g_Settings->SaveString(Plugin_CONT_Current, "libProject64-input-linux.so");

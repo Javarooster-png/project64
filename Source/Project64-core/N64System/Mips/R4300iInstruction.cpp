@@ -164,7 +164,7 @@ void R4300iInstruction::ReadsGPR(uint32_t & Reg1, uint32_t & Reg2) const
         return;
     }
 
-    if (op >= R4300i_SB && op <= R4300i_SWR || op == R4300i_SC || op == R4300i_SD || op == R4300i_BEQ || op == R4300i_BEQL || op == R4300i_BNE || op == R4300i_BNEL)
+    if (op >= R4300i_SB && op <= R4300i_SWR || op == R4300i_SC || op == R4300i_SCD || op == R4300i_SD || op == R4300i_BEQ || op == R4300i_BEQL || op == R4300i_BNE || op == R4300i_BNEL)
     {
         Reg1 = m_Instruction.rs;
         Reg2 = m_Instruction.rt;
@@ -217,7 +217,7 @@ int32_t R4300iInstruction::WritesGPR(void) const
             return 31; // RA
         }
     }
-    else if (op >= R4300i_DADDI && op <= R4300i_LWU || op >= R4300i_ADDI && op <= R4300i_LUI || op == R4300i_LL || op == R4300i_LD || (op == R4300i_CP0 && m_Instruction.fmt == R4300i_COP0_MF) || (op == R4300i_CP1 && m_Instruction.fmt == R4300i_COP1_MF) || (op == R4300i_CP1 && m_Instruction.fmt == R4300i_COP1_CF))
+    else if (op >= R4300i_DADDI && op <= R4300i_LWU || op >= R4300i_ADDI && op <= R4300i_LUI || op == R4300i_LL || op == R4300i_LD || op == R4300i_SC || op == R4300i_SCD || (op == R4300i_CP0 && m_Instruction.fmt == R4300i_COP0_MF) || (op == R4300i_CP1 && m_Instruction.fmt == R4300i_COP1_MF) || (op == R4300i_CP1 && m_Instruction.fmt == R4300i_COP1_CF))
     {
         return m_Instruction.rt;
     }
@@ -409,6 +409,7 @@ void R4300iInstruction::DecodeName(void)
                 case R4300i_COP0_CO_TLBWR: strcpy(m_Name, "TLBWR"); break;
                 case R4300i_COP0_CO_TLBP: strcpy(m_Name, "TLBP"); break;
                 case R4300i_COP0_CO_ERET: strcpy(m_Name, "ERET"); break;
+                case R4300i_COP0_CO_EMUX: strcpy(m_Name, "EMUX"); break;
                 default:
                     strcpy(m_Name, "UNKNOWN");
                     sprintf(m_Param, "0x%08X", m_Instruction.Value);
@@ -580,6 +581,10 @@ void R4300iInstruction::DecodeName(void)
     case R4300i_SWC1:
         strcpy(m_Name, "SWC1");
         sprintf(m_Param, "%s, 0x%04X (%s)", CRegName::FPR[m_Instruction.rt], m_Instruction.offset, CRegName::GPR[m_Instruction.base]);
+        break;
+    case R4300i_SCD:
+        strcpy(m_Name, "SCD");
+        sprintf(m_Param, "%s, 0x%04X (%s)", CRegName::GPR[m_Instruction.rt], m_Instruction.offset, CRegName::GPR[m_Instruction.base]);
         break;
     case R4300i_SDC1:
         strcpy(m_Name, "SDC1");

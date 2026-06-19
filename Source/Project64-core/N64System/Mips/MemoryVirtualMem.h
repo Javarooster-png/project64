@@ -113,6 +113,8 @@ public:
 
     bool ValidVaddr(uint32_t VAddr) const;
     bool VAddrToPAddr(uint32_t VAddr, uint32_t & PAddr) const;
+    void CopyHiddenRdramToRdp(uint8_t * HiddenRdram, size_t HiddenRdramSize, uint32_t RdramOffset, uint32_t ByteCount) const;
+    void UpdateHiddenRdramFromRdp(const uint8_t * HiddenRdram, size_t HiddenRdramSize, uint32_t RdramOffset, uint32_t ByteCount);
 
     // Labels
     const char * LabelName(uint32_t Address) const;
@@ -174,6 +176,14 @@ private:
     bool SW_PhysicalAddress(uint32_t PAddr, uint32_t Value);
     bool SD_PhysicalAddress(uint32_t PAddr, uint64_t Value);
 
+    void RdramWrite8(uint32_t PAddr, uint32_t Value);
+    void RdramWrite16(uint32_t PAddr, uint32_t Value);
+    void RdramWrite32(uint32_t PAddr, uint32_t Value);
+    void RdramWrite64(uint32_t PAddr, uint64_t Value);
+    void RdramWriteRepeat(uint32_t PAddr, const uint8_t * Bytes, uint32_t ByteCount);
+    uint32_t RdramReadHidden32(uint32_t PAddr) const;
+    bool RdramAddress(uint32_t VAddr, uint32_t & PAddr) const;
+
 #if defined(__i386__) || defined(_M_IX86)
 
     typedef struct _X86_CONTEXT
@@ -217,6 +227,7 @@ private:
     SPRegistersHandler m_SPRegistersHandler;
     VideoInterfaceHandler m_VideoInterfaceHandler;
     uint8_t * m_RDRAM;
+    uint8_t * m_RDRAMHidden;
     uint32_t m_AllocatedRdramSize;
     CN64Rom & m_Rom;
 

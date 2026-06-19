@@ -37,6 +37,7 @@ CMipsMemoryVM::CMipsMemoryVM(CN64System & System, bool SavesReadOnly) :
     m_TLB_ReadMap(nullptr),
     m_TLB_WriteMap(nullptr),
     m_RDRAM(nullptr),
+    m_RDRAMHidden(nullptr),
     m_Rom(*g_Rom)
 {
     g_Settings->RegisterChangeCB(Game_RDRamSize, this, (CSettings::SettingChangedFunc)RdramChanged);
@@ -132,6 +133,14 @@ bool CMipsMemoryVM::Initialize(void)
         FreeMemory();
         return false;
     }
+    m_RDRAMHidden = new uint8_t[0x02000000];
+    if (m_RDRAMHidden == nullptr)
+    {
+        WriteTrace(TraceN64System, TraceError, "Failed to allocate hidden RDRAM state");
+        FreeMemory();
+        return false;
+    }
+    memset(m_RDRAMHidden, 0, 0x02000000);
     g_Settings->SaveDword(Setting_AllocatedRdramSize, m_AllocatedRdramSize);
 
     m_MemoryReadMap = new size_t[0x100000];
@@ -175,6 +184,11 @@ void CMipsMemoryVM::FreeMemory()
         DecommitMemory(m_RDRAM, 0x02000000);
         FreeAddressSpace(m_RDRAM, 0x02000000);
         m_RDRAM = nullptr;
+    }
+    if (m_RDRAMHidden)
+    {
+        delete[] m_RDRAMHidden;
+        m_RDRAMHidden = nullptr;
     }
     if (m_TLB_ReadMap)
     {
@@ -387,6 +401,12 @@ bool CMipsMemoryVM::LW_Memory(uint64_t VAddr, uint32_t & Value)
     {
         return false;
     }
+    uint32_t PAddr = m_TLB_ReadMap[VAddr32 >> 12] + VAddr32;
+    if ((m_Reg.MI_MODE_REG & MI_MODE_EBUS) != 0 && PAddr < m_AllocatedRdramSize)
+    {
+        Value = RdramReadHidden32(PAddr);
+        return true;
+    }
     uint8_t * MemoryPtr = (uint8_t *)m_MemoryReadMap[VAddr32 >> 12];
     if (MemoryPtr != (uint8_t *)-1)
     {
@@ -447,6 +467,12 @@ bool CMipsMemoryVM::SB_Memory(uint64_t VAddr, uint32_t Value)
     {
         return false;
     }
+    uint32_t PAddr;
+    if (RdramAddress(VAddr32, PAddr))
+    {
+        RdramWrite8(PAddr, Value);
+        return true;
+    }
     uint8_t * MemoryPtr = (uint8_t *)m_MemoryWriteMap[VAddr32 >> 12];
     if (MemoryPtr != (uint8_t *)-1)
     {
@@ -478,6 +504,12 @@ bool CMipsMemoryVM::SH_Memory(uint64_t VAddr, uint32_t Value)
     if (g_DebugSettings.haveWriteBP && g_Debugger->WriteBP16(VAddr32) && MemoryBreakpoint())
     {
         return false;
+    }
+    uint32_t PAddr;
+    if (RdramAddress(VAddr32, PAddr))
+    {
+        RdramWrite16(PAddr, Value);
+        return true;
     }
     uint8_t * MemoryPtr = (uint8_t *)m_MemoryWriteMap[VAddr32 >> 12];
     if (MemoryPtr != (uint8_t *)-1)
@@ -511,6 +543,12 @@ bool CMipsMemoryVM::SW_Memory(uint64_t VAddr, uint32_t Value)
     {
         return false;
     }
+    uint32_t PAddr;
+    if (RdramAddress(VAddr32, PAddr))
+    {
+        RdramWrite32(PAddr, Value);
+        return true;
+    }
     uint8_t * MemoryPtr = (uint8_t *)m_MemoryWriteMap[VAddr32 >> 12];
     if (MemoryPtr != (uint8_t *)-1)
     {
@@ -542,6 +580,12 @@ bool CMipsMemoryVM::SD_Memory(uint64_t VAddr, uint64_t Value)
     if (g_DebugSettings.haveWriteBP && g_Debugger->WriteBP64(VAddr32) && MemoryBreakpoint())
     {
         return false;
+    }
+    uint32_t PAddr;
+    if (RdramAddress(VAddr32, PAddr))
+    {
+        RdramWrite64(PAddr, Value);
+        return true;
     }
     uint8_t * MemoryPtr = (uint8_t *)m_MemoryWriteMap[VAddr32 >> 12];
     if (MemoryPtr != (uint8_t *)-1)
@@ -721,7 +765,16 @@ bool CMipsMemoryVM::LW_PhysicalAddress(uint32_t PAddr, uint32_t & Value)
     default:
         if (PAddr < g_GameSettings.rdramSize)
         {
+            if ((m_Reg.MI_MODE_REG & MI_MODE_EBUS) != 0)
+            {
+                Value = RdramReadHidden32(PAddr);
+                return true;
+            }
             Value = *(uint32_t *)(m_RDRAM + PAddr);
+        }
+        else if ((m_Reg.MI_MODE_REG & MI_MODE_EBUS) != 0 && PAddr < m_AllocatedRdramSize)
+        {
+            Value = RdramReadHidden32(PAddr);
         }
         else if (PAddr >= 0x10000000 && PAddr < 0x20000000)
         {
@@ -803,6 +856,173 @@ bool CMipsMemoryVM::SD_VAddr32(uint32_t VAddr, uint64_t Value)
     return SD_PhysicalAddress(BaseAddress + VAddr, Value);
 }
 
+bool CMipsMemoryVM::RdramAddress(uint32_t VAddr, uint32_t & PAddr) const
+{
+    const uint32_t BaseAddress = m_TLB_WriteMap[VAddr >> 12];
+    if (BaseAddress == (uint32_t)-1)
+    {
+        return false;
+    }
+    PAddr = BaseAddress + VAddr;
+    return PAddr < m_AllocatedRdramSize;
+}
+
+uint32_t CMipsMemoryVM::RdramReadHidden32(uint32_t PAddr) const
+{
+    if (m_RDRAMHidden == nullptr || (PAddr + 3) >= m_AllocatedRdramSize)
+    {
+        return 0;
+    }
+    return ((uint32_t)(m_RDRAMHidden[PAddr + 0] & 1) << 3) |
+           ((uint32_t)(m_RDRAMHidden[PAddr + 1] & 1) << 2) |
+           ((uint32_t)(m_RDRAMHidden[PAddr + 2] & 1) << 1) |
+           ((uint32_t)(m_RDRAMHidden[PAddr + 3] & 1) << 0);
+}
+
+void CMipsMemoryVM::CopyHiddenRdramToRdp(uint8_t * HiddenRdram, size_t HiddenRdramSize, uint32_t RdramOffset, uint32_t ByteCount) const
+{
+    if (m_RDRAMHidden == nullptr || HiddenRdram == nullptr || HiddenRdramSize == 0 || ByteCount == 0 || RdramOffset >= m_AllocatedRdramSize)
+    {
+        return;
+    }
+
+    uint32_t End = RdramOffset + ByteCount;
+    if (End < RdramOffset || End > m_AllocatedRdramSize)
+    {
+        End = m_AllocatedRdramSize;
+    }
+
+    const size_t FirstHalfword = RdramOffset / 2;
+    size_t LastHalfword = (End + 1) / 2;
+    if (LastHalfword > HiddenRdramSize)
+    {
+        LastHalfword = HiddenRdramSize;
+    }
+
+    for (size_t i = FirstHalfword; i < LastHalfword; i++)
+    {
+        const size_t PAddr = i * 2;
+        HiddenRdram[i] = ((m_RDRAMHidden[PAddr + 0] & 1) << 1) |
+                         ((m_RDRAMHidden[PAddr + 1] & 1) << 0);
+    }
+}
+
+void CMipsMemoryVM::UpdateHiddenRdramFromRdp(const uint8_t * HiddenRdram, size_t HiddenRdramSize, uint32_t RdramOffset, uint32_t ByteCount)
+{
+    if (m_RDRAMHidden == nullptr || HiddenRdram == nullptr || HiddenRdramSize == 0 || ByteCount == 0 || RdramOffset >= m_AllocatedRdramSize)
+    {
+        return;
+    }
+
+    uint32_t End = RdramOffset + ByteCount;
+    if (End < RdramOffset || End > m_AllocatedRdramSize)
+    {
+        End = m_AllocatedRdramSize;
+    }
+
+    const size_t FirstHalfword = RdramOffset / 2;
+    size_t LastHalfword = (End + 1) / 2;
+    if (LastHalfword > HiddenRdramSize)
+    {
+        LastHalfword = HiddenRdramSize;
+    }
+
+    for (size_t i = FirstHalfword; i < LastHalfword; i++)
+    {
+        const uint8_t Hidden = HiddenRdram[i] & 3;
+        const size_t PAddr = i * 2;
+        m_RDRAMHidden[PAddr + 0] = (Hidden >> 1) & 1;
+        m_RDRAMHidden[PAddr + 1] = Hidden & 1;
+    }
+}
+
+void CMipsMemoryVM::RdramWriteRepeat(uint32_t PAddr, const uint8_t * Bytes, uint32_t ByteCount)
+{
+    if ((m_Reg.MI_MODE_REG & MI_MODE_INIT) == 0)
+    {
+        for (uint32_t i = 0; i < ByteCount; i++)
+        {
+            const uint32_t Addr = PAddr + i;
+            *(uint8_t *)(m_RDRAM + (Addr ^ 3)) = Bytes[i];
+            if (m_RDRAMHidden != nullptr && Addr < m_AllocatedRdramSize)
+            {
+                m_RDRAMHidden[Addr] = Bytes[i] & 1;
+            }
+        }
+        return;
+    }
+
+    uint32_t Length = (m_Reg.MI_MODE_REG & 0x7F) + 1;
+    uint32_t End = PAddr + Length;
+    if (End > m_AllocatedRdramSize)
+    {
+        End = m_AllocatedRdramSize;
+    }
+    m_Reg.MI_MODE_REG &= ~MI_MODE_INIT;
+
+    for (uint32_t Addr = PAddr; Addr < End; Addr++)
+    {
+        const uint8_t Byte = Bytes[(Addr - PAddr) % ByteCount];
+        *(uint8_t *)(m_RDRAM + (Addr ^ 3)) = Byte;
+        if (m_RDRAMHidden != nullptr)
+        {
+            m_RDRAMHidden[Addr] = Byte & 1;
+        }
+    }
+}
+
+void CMipsMemoryVM::RdramWrite8(uint32_t PAddr, uint32_t Value)
+{
+    uint8_t Bytes[1] = { (uint8_t)Value };
+    RdramWriteRepeat(PAddr, Bytes, sizeof(Bytes));
+}
+
+void CMipsMemoryVM::RdramWrite16(uint32_t PAddr, uint32_t Value)
+{
+    uint8_t Bytes[2] = {
+        (uint8_t)(Value >> 8),
+        (uint8_t)Value,
+    };
+    if ((m_Reg.MI_MODE_REG & MI_MODE_INIT) == 0 && m_RDRAMHidden != nullptr && (PAddr + 1) < m_AllocatedRdramSize)
+    {
+        uint8_t Hidden = Value & 1;
+        m_RDRAMHidden[PAddr + 0] = Hidden;
+        m_RDRAMHidden[PAddr + 1] = Hidden;
+        for (uint32_t i = 0; i < sizeof(Bytes); i++)
+        {
+            *(uint8_t *)(m_RDRAM + ((PAddr + i) ^ 3)) = Bytes[i];
+        }
+        return;
+    }
+    RdramWriteRepeat(PAddr, Bytes, sizeof(Bytes));
+}
+
+void CMipsMemoryVM::RdramWrite32(uint32_t PAddr, uint32_t Value)
+{
+    uint8_t Bytes[4] = {
+        (uint8_t)(Value >> 24),
+        (uint8_t)(Value >> 16),
+        (uint8_t)(Value >> 8),
+        (uint8_t)Value,
+    };
+    RdramWriteRepeat(PAddr, Bytes, sizeof(Bytes));
+}
+
+void CMipsMemoryVM::RdramWrite64(uint32_t PAddr, uint64_t Value)
+{
+    uint8_t Bytes[8] = {
+        (uint8_t)(Value >> 56),
+        (uint8_t)(Value >> 48),
+        (uint8_t)(Value >> 40),
+        (uint8_t)(Value >> 32),
+        (uint8_t)(Value >> 24),
+        (uint8_t)(Value >> 16),
+        (uint8_t)(Value >> 8),
+        (uint8_t)Value,
+    };
+    RdramWriteRepeat(PAddr, Bytes, sizeof(Bytes));
+}
+
 bool CMipsMemoryVM::SB_PhysicalAddress(uint32_t PAddr, uint32_t Value)
 {
     switch (PAddr & 0xFFF00000)
@@ -818,7 +1038,7 @@ bool CMipsMemoryVM::SB_PhysicalAddress(uint32_t PAddr, uint32_t Value)
         if (PAddr < g_GameSettings.rdramSize)
         {
             g_Recompiler->ClearRecompCode_Phys(PAddr & ~0xFFF, 0xFFC, CRecompiler::Remove_ProtectedMem);
-            *(uint8_t *)(m_RDRAM + (PAddr ^ 3)) = (uint8_t)Value;
+            RdramWrite8(PAddr, Value);
         }
         break;
     case 0x04000000: m_SPRegistersHandler.Write32(PAddr & ~3, Value << ((3 - (PAddr & 3)) * 8), 0xFFFFFFFF); break;
@@ -855,8 +1075,8 @@ bool CMipsMemoryVM::SH_PhysicalAddress(uint32_t PAddr, uint32_t Value)
                 g_Recompiler->ClearRecompCode_Phys(PAddr & ~0xFFF, 0x1000, CRecompiler::Remove_ProtectedMem);
                 m_TLB_WriteMap[(0x80000000 + PAddr) >> 12] = PAddr - (0x80000000 + PAddr);
                 m_TLB_WriteMap[(0xA0000000 + PAddr) >> 12] = PAddr - (0xA0000000 + PAddr);
-                *(uint16_t *)(m_RDRAM + (PAddr ^ 2)) = (uint16_t)Value;
             }
+            RdramWrite16(PAddr, Value);
         }
         break;
     case 0x04000000: m_SPRegistersHandler.Write32(PAddr & ~3, Value << ((2 - (PAddr & 2)) * 8), 0xFFFFFFFF); break;
@@ -894,8 +1114,8 @@ bool CMipsMemoryVM::SW_PhysicalAddress(uint32_t PAddr, uint32_t Value)
                 g_Recompiler->ClearRecompCode_Phys(PAddr & ~0xFFF, 0x1000, CRecompiler::Remove_ProtectedMem);
                 m_TLB_WriteMap[(0x80000000 + PAddr) >> 12] = PAddr - (0x80000000 + PAddr);
                 m_TLB_WriteMap[(0xA0000000 + PAddr) >> 12] = PAddr - (0xA0000000 + PAddr);
-                *(uint32_t *)(m_RDRAM + PAddr) = Value;
             }
+            RdramWrite32(PAddr, Value);
         }
         break;
     case 0x03F00000: m_RDRAMRegistersHandler.Write32(PAddr, Value, 0xFFFFFFFF); break;
@@ -945,8 +1165,7 @@ bool CMipsMemoryVM::SD_PhysicalAddress(uint32_t PAddr, uint64_t Value)
         if (PAddr < g_GameSettings.rdramSize)
         {
             g_Recompiler->ClearRecompCode_Phys(PAddr & ~0xFFF, 0xFFC, CRecompiler::Remove_ProtectedMem);
-            *(uint32_t *)(m_RDRAM + PAddr) = *((uint32_t *)(&Value) + 1);
-            *(uint32_t *)(m_RDRAM + PAddr + 4) = *((uint32_t *)(&Value) + 0);
+            RdramWrite64(PAddr, Value);
         }
         break;
     case 0x04000000: m_SPRegistersHandler.Write32(PAddr, (int32_t)(Value >> 32), 0xFFFFFFFF); break;

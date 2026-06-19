@@ -44,34 +44,24 @@ bool ISViewerHandler::Write32(uint32_t Address, uint32_t Value, uint32_t Mask)
 
     if ((Address & 0xFFFC) == 0x14 && MaskedValue > 0)
     {
-        if (m_BufferPos + MaskedValue <= (sizeof(m_Buffer) / sizeof(m_Buffer[0])))
+        size_t DataStrLen = strnlen((const char *)&m_Data[0x20], m_Data.size() - 0x20);
+        if (DataStrLen < MaskedValue)
         {
-            size_t DataStrLen = strnlen((const char *)&m_Data[0x20], m_Data.size() - 0x20);
-            if (DataStrLen < MaskedValue)
-            {
-                MaskedValue = (uint32_t)DataStrLen;
-            }
-            memcpy(&m_Buffer[m_BufferPos], (const char *)&m_Data[0x20], MaskedValue);
-            m_BufferPos += MaskedValue;
-            char * NewLine = (char *)memchr((void *)&m_Buffer[0], '\n', m_BufferPos);
-            if (NewLine != nullptr)
-            {
-                m_BufferPos = 0;
-                if (m_hLogFile == nullptr)
-                {
-                    CPath LogFile(g_Settings->LoadStringVal(Directory_Log).c_str(), "ISViewer.log");
-                    m_hLogFile.reset(new CFile(LogFile, CFileBase::modeCreate | CFileBase::modeWrite));
-                }
-                if (m_hLogFile != nullptr && NewLine != m_Buffer)
-                {
-                    m_hLogFile->Write(m_Buffer, (uint32_t)((NewLine - m_Buffer) + 1));
-                    m_hLogFile->Flush();
-                }
-            }
+            MaskedValue = (uint32_t)DataStrLen;
         }
-        else
+
+        if (MaskedValue > 0)
         {
-            m_BufferPos = 0;
+            if (m_hLogFile == nullptr)
+            {
+                CPath LogFile(g_Settings->LoadStringVal(Directory_Log).c_str(), "ISViewer.log");
+                m_hLogFile.reset(new CFile(LogFile, CFileBase::modeCreate | CFileBase::modeWrite));
+            }
+            if (m_hLogFile != nullptr)
+            {
+                m_hLogFile->Write((const char *)&m_Data[0x20], MaskedValue);
+                m_hLogFile->Flush();
+            }
         }
     }
     return true;

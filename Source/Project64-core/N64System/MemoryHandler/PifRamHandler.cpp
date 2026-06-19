@@ -82,6 +82,7 @@ void PifRamHandler::DMA_READ()
     uint8_t * RDRAM = g_MMU->Rdram();
 
     uint32_t & SI_DRAM_ADDR_REG = (uint32_t &)g_Reg->SI_DRAM_ADDR_REG;
+    SI_DRAM_ADDR_REG &= 0x1FFFFFFF;
     if ((int32_t)SI_DRAM_ADDR_REG > (int32_t)g_GameSettings.rdramSize)
     {
         if (g_DebugSettings.showPifRamErrors)
@@ -184,6 +185,7 @@ void PifRamHandler::DMA_WRITE()
     uint8_t * PifRamPos = m_PifRam;
 
     uint32_t & SI_DRAM_ADDR_REG = (uint32_t &)g_Reg->SI_DRAM_ADDR_REG;
+    SI_DRAM_ADDR_REG &= 0x1FFFFFFF;
     if ((int32_t)SI_DRAM_ADDR_REG > (int32_t)g_GameSettings.rdramSize)
     {
         if (g_DebugSettings.showPifRamErrors)

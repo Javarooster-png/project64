@@ -9,6 +9,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDL2 REQUIRED sdl2)
+pkg_check_modules(X11 REQUIRED x11)
 pkg_check_modules(LIBPNG REQUIRED libpng)
 find_package(wxWidgets REQUIRED COMPONENTS core base)
 include(${wxWidgets_USE_FILE})
@@ -409,6 +410,73 @@ target_link_libraries(GLideN64 PRIVATE
     OpenGL::GL
     ${OPENGL_LEGACY_GL_LIBRARY})
 
+set(PARALLEL_RDP_SRC "${PJ64_SOURCE}/parallel-rdp")
+file(GLOB PARALLEL_RDP_CORE_SOURCES CONFIGURE_DEPENDS
+    "${PARALLEL_RDP_SRC}/parallel-rdp/*.cpp")
+set(PARALLEL_RDP_SOURCES
+    ${PARALLEL_RDP_CORE_SOURCES}
+    ${PARALLEL_RDP_SRC}/vulkan/buffer.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/buffer_pool.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/command_buffer.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/command_pool.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/context.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/cookie.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/descriptor_set.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/device.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/event_manager.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/fence.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/fence_manager.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/image.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/indirect_layout.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/memory_allocator.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/pipeline_event.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/query_pool.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/render_pass.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/sampler.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/semaphore.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/semaphore_manager.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/shader.cpp
+    ${PARALLEL_RDP_SRC}/vulkan/texture/texture_format.cpp
+    ${PARALLEL_RDP_SRC}/util/aligned_alloc.cpp
+    ${PARALLEL_RDP_SRC}/util/arena_allocator.cpp
+    ${PARALLEL_RDP_SRC}/util/environment.cpp
+    ${PARALLEL_RDP_SRC}/util/logging.cpp
+    ${PARALLEL_RDP_SRC}/util/thread_id.cpp
+    ${PARALLEL_RDP_SRC}/util/thread_name.cpp
+    ${PARALLEL_RDP_SRC}/util/timer.cpp
+    ${PARALLEL_RDP_SRC}/util/timeline_trace_file.cpp
+    ${PARALLEL_RDP_SRC}/volk/volk.c
+    Source/Project64-parallel-rdp/parallel_rdp_plugin.cpp)
+add_library(parallel-rdp-pj64 SHARED ${PARALLEL_RDP_SOURCES})
+set_target_properties(parallel-rdp-pj64 PROPERTIES
+    OUTPUT_NAME parallel-rdp-pj64
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED ON)
+target_include_directories(parallel-rdp-pj64 PRIVATE
+    "${PJ64_SOURCE}"
+    "${PARALLEL_RDP_SRC}/parallel-rdp"
+    "${PARALLEL_RDP_SRC}/util"
+    "${PARALLEL_RDP_SRC}/volk"
+    "${PARALLEL_RDP_SRC}/vulkan"
+    "${PARALLEL_RDP_SRC}/vulkan-headers/include")
+target_compile_options(parallel-rdp-pj64 PRIVATE
+    $<$<COMPILE_LANGUAGE:C>:-O3>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wall>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-missing-field-initializers>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-empty-body>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-parameter>
+    $<$<COMPILE_LANGUAGE:CXX>:-O3>
+    $<$<COMPILE_LANGUAGE:CXX>:-ffast-math>
+    $<$<COMPILE_LANGUAGE:CXX>:-fwrapv>)
+target_link_options(parallel-rdp-pj64 PRIVATE -Wl,-Bsymbolic)
+target_link_libraries(parallel-rdp-pj64 PRIVATE
+    dl
+    pthread
+    OpenGL::GL
+    ${OPENGL_LEGACY_GL_LIBRARY})
+
 add_library(Project64-input-linux SHARED
     Source/Project64-input/CProject64Input.cpp
     Source/Project64-input/InputMain.cpp
@@ -423,16 +491,19 @@ target_include_directories(Project64-input-linux PRIVATE
     "${PJ64_SOURCE}/Project64-input"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/Project64-input"
     "${CMAKE_CURRENT_BINARY_DIR}/generated"
+    ${X11_INCLUDE_DIRS}
     ${SDL2_INCLUDE_DIRS})
 target_compile_options(Project64-input-linux PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
     $<$<COMPILE_LANGUAGE:CXX>:-include>
     $<$<COMPILE_LANGUAGE:CXX>:${PJ64_SOURCE}/Project64-linux/linux_force_include.h>
+    ${X11_CFLAGS_OTHER}
     ${SDL2_CFLAGS_OTHER})
 target_link_options(Project64-input-linux PRIVATE -Wl,-Bsymbolic)
 target_link_libraries(Project64-input-linux PRIVATE
     Common
     settings
+    ${X11_LIBRARIES}
     ${SDL2_LIBRARIES})
 
 add_library(Project64-audio-linux SHARED

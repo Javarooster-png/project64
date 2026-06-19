@@ -335,7 +335,7 @@ void R4300iOp::BuildInterpreter(bool Force32bit)
     Jump_Opcode[57] = Force32bit ? &R4300iOp::SWC1_32 : &R4300iOp::SWC1;
     Jump_Opcode[58] = &R4300iOp::UnknownOpcode;
     Jump_Opcode[59] = &R4300iOp::UnknownOpcode;
-    Jump_Opcode[60] = &R4300iOp::UnknownOpcode;
+    Jump_Opcode[60] = Force32bit ? &R4300iOp::SCD_32 : &R4300iOp::SCD;
     Jump_Opcode[61] = Force32bit ? &R4300iOp::SDC1_32 : &R4300iOp::SDC1;
     Jump_Opcode[62] = &R4300iOp::UnknownOpcode;
     Jump_Opcode[63] = Force32bit ? &R4300iOp::SD_32 : &R4300iOp::SD;
@@ -503,7 +503,7 @@ void R4300iOp::BuildInterpreter(bool Force32bit)
     Jump_CoP0_Function[29] = &R4300iOp::UnknownOpcode;
     Jump_CoP0_Function[30] = &R4300iOp::UnknownOpcode;
     Jump_CoP0_Function[31] = &R4300iOp::UnknownOpcode;
-    Jump_CoP0_Function[32] = &R4300iOp::UnknownOpcode;
+    Jump_CoP0_Function[32] = &R4300iOp::COP0_CO_EMUX;
     Jump_CoP0_Function[33] = &R4300iOp::UnknownOpcode;
     Jump_CoP0_Function[34] = &R4300iOp::UnknownOpcode;
     Jump_CoP0_Function[35] = &R4300iOp::UnknownOpcode;
@@ -1540,9 +1540,10 @@ void R4300iOp::LL()
         m_GPR[m_Opcode.rt].DW = (int32_t)MemoryValue;
         m_LLBit = 1;
         uint32_t PhysicalAddr;
-        bool MemoryUsed;
-        m_TLB.VAddrToPAddr(Address, PhysicalAddr, MemoryUsed);
-        m_CP0[17] = PhysicalAddr >> 4;
+        if (m_MMU.VAddrToPAddr((uint32_t)Address, PhysicalAddr))
+        {
+            m_CP0[17] = PhysicalAddr >> 4;
+        }
     }
 }
 
@@ -1556,9 +1557,10 @@ void R4300iOp::LL_32()
         m_GPR[m_Opcode.rt].DW = (int32_t)MemoryValue;
         m_LLBit = 1;
         uint32_t PhysicalAddr;
-        bool MemoryUsed;
-        m_TLB.VAddrToPAddr(Address, PhysicalAddr, MemoryUsed);
-        m_CP0[17] = PhysicalAddr >> 4;
+        if (m_MMU.VAddrToPAddr((uint32_t)Address, PhysicalAddr))
+        {
+            m_CP0[17] = PhysicalAddr >> 4;
+        }
     }
 }
 
@@ -1585,18 +1587,60 @@ void R4300iOp::LWC1_32()
 void R4300iOp::SC()
 {
     uint64_t Address = m_GPR[m_Opcode.base].DW + (int16_t)m_Opcode.offset;
-    if (m_LLBit != 1 || m_MMU.SW_Memory(Address, m_GPR[m_Opcode.rt].UW[0]))
+    uint32_t PhysicalAddr;
+    bool Success = m_LLBit == 1 &&
+                   m_MMU.VAddrToPAddr((uint32_t)Address, PhysicalAddr) &&
+                   (PhysicalAddr >> 4) == (uint32_t)m_CP0[17] &&
+                   m_MMU.SW_Memory(Address, m_GPR[m_Opcode.rt].UW[0]);
+    m_LLBit = 0;
+    if (Success || m_LLBit != 1)
     {
-        m_GPR[m_Opcode.rt].UW[0] = m_LLBit;
+        m_GPR[m_Opcode.rt].UW[0] = Success ? 1 : 0;
     }
 }
 
 void R4300iOp::SC_32()
 {
     uint64_t Address = m_GPR[m_Opcode.base].W[0] + (int16_t)m_Opcode.offset;
-    if (m_LLBit != 1 || m_MMU.SW_Memory(Address, m_GPR[m_Opcode.rt].UW[0]))
+    uint32_t PhysicalAddr;
+    bool Success = m_LLBit == 1 &&
+                   m_MMU.VAddrToPAddr((uint32_t)Address, PhysicalAddr) &&
+                   (PhysicalAddr >> 4) == (uint32_t)m_CP0[17] &&
+                   m_MMU.SW_Memory(Address, m_GPR[m_Opcode.rt].UW[0]);
+    m_LLBit = 0;
+    if (Success || m_LLBit != 1)
     {
-        m_GPR[m_Opcode.rt].UW[0] = m_LLBit;
+        m_GPR[m_Opcode.rt].UW[0] = Success ? 1 : 0;
+    }
+}
+
+void R4300iOp::SCD()
+{
+    uint64_t Address = m_GPR[m_Opcode.base].DW + (int16_t)m_Opcode.offset;
+    uint32_t PhysicalAddr;
+    bool Success = m_LLBit == 1 &&
+                   m_MMU.VAddrToPAddr((uint32_t)Address, PhysicalAddr) &&
+                   (PhysicalAddr >> 4) == (uint32_t)m_CP0[17] &&
+                   m_MMU.SD_Memory(Address, m_GPR[m_Opcode.rt].UDW);
+    m_LLBit = 0;
+    if (Success || m_LLBit != 1)
+    {
+        m_GPR[m_Opcode.rt].UDW = Success ? 1 : 0;
+    }
+}
+
+void R4300iOp::SCD_32()
+{
+    uint64_t Address = m_GPR[m_Opcode.base].W[0] + (int16_t)m_Opcode.offset;
+    uint32_t PhysicalAddr;
+    bool Success = m_LLBit == 1 &&
+                   m_MMU.VAddrToPAddr((uint32_t)Address, PhysicalAddr) &&
+                   (PhysicalAddr >> 4) == (uint32_t)m_CP0[17] &&
+                   m_MMU.SD_Memory(Address, m_GPR[m_Opcode.rt].UDW);
+    m_LLBit = 0;
+    if (Success || m_LLBit != 1)
+    {
+        m_GPR[m_Opcode.rt].UDW = Success ? 1 : 0;
     }
 }
 
@@ -1635,9 +1679,10 @@ void R4300iOp::LLD()
     {
         m_LLBit = 1;
         uint32_t PhysicalAddr;
-        bool MemoryUsed;
-        m_TLB.VAddrToPAddr(Address, PhysicalAddr, MemoryUsed);
-        m_CP0[17] = PhysicalAddr >> 4;
+        if (m_MMU.VAddrToPAddr((uint32_t)Address, PhysicalAddr))
+        {
+            m_CP0[17] = PhysicalAddr >> 4;
+        }
     }
 }
 
@@ -1648,9 +1693,10 @@ void R4300iOp::LLD_32()
     {
         m_LLBit = 1;
         uint32_t PhysicalAddr;
-        bool MemoryUsed;
-        m_TLB.VAddrToPAddr(Address, PhysicalAddr, MemoryUsed);
-        m_CP0[17] = PhysicalAddr >> 4;
+        if (m_MMU.VAddrToPAddr((uint32_t)Address, PhysicalAddr))
+        {
+            m_CP0[17] = PhysicalAddr >> 4;
+        }
     }
 }
 
@@ -2354,6 +2400,16 @@ void R4300iOp::COP0_CO_ERET()
     m_LLBit = 0;
     m_Reg.CheckInterrupts();
     m_System.m_TestTimer = true;
+}
+
+void R4300iOp::COP0_CO_EMUX()
+{
+    // libdragon uses COP0 function 0x20 as an EMUX probe/command channel.
+    // Project64 does not implement EMUX, so XDETECT reports no supported features.
+    if ((m_Opcode.Value & 0x7F) == 0x60)
+    {
+        m_GPR[m_Opcode.rt].UDW = 0;
+    }
 }
 
 // COP1 functions
@@ -3479,10 +3535,7 @@ void R4300iOp::UnknownOpcode()
     else
     {
         R4300iInstruction Opcode(m_PROGRAM_COUNTER, m_Opcode.Value);
-        g_Notify->DisplayError(stdstr_f("%s: %08X\n%s %s\n\nStopping emulation", GS(MSG_UNHANDLED_OP), (m_PROGRAM_COUNTER), Opcode.Name(), Opcode.Param()).c_str());
-        m_System.m_EndEmulation = true;
-
-        g_Notify->BreakPoint(__FILE__, __LINE__);
+        g_Notify->DisplayError(stdstr_f("%s: %08X\n%s %s", GS(MSG_UNHANDLED_OP), (m_PROGRAM_COUNTER), Opcode.Name(), Opcode.Param()).c_str());
     }
 }
 

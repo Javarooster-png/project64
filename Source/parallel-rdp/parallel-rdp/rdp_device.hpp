@@ -139,9 +139,11 @@ public:
 
 	// Interact with memory.
 	void *begin_read_rdram();
+	void end_read_rdram();
 	void end_write_rdram();
 	void *begin_read_hidden_rdram();
 	void *begin_write_hidden_rdram();
+	void end_read_hidden_rdram();
 	void end_write_hidden_rdram();
 	size_t get_rdram_size() const;
 	size_t get_hidden_rdram_size() const;

@@ -1002,6 +1002,12 @@ void *CommandProcessor::begin_read_rdram()
 		return nullptr;
 }
 
+void CommandProcessor::end_read_rdram()
+{
+	if (rdram)
+		device.unmap_host_buffer(*rdram, MEMORY_ACCESS_READ_BIT);
+}
+
 void CommandProcessor::end_write_rdram()
 {
 	if (rdram)
@@ -1016,6 +1022,11 @@ void *CommandProcessor::begin_read_hidden_rdram()
 void *CommandProcessor::begin_write_hidden_rdram()
 {
 	return device.map_host_buffer(*hidden_rdram, MEMORY_ACCESS_WRITE_BIT);
+}
+
+void CommandProcessor::end_read_hidden_rdram()
+{
+	device.unmap_host_buffer(*hidden_rdram, MEMORY_ACCESS_READ_BIT);
 }
 
 void CommandProcessor::end_write_hidden_rdram()

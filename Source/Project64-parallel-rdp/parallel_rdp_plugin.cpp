@@ -74,14 +74,6 @@ void SetReg(uint32_t * Value, uint32_t Data)
     }
 }
 
-void AddReg(uint32_t * Value, uint32_t Data)
-{
-    if (Value != nullptr)
-    {
-        *Value += Data;
-    }
-}
-
 void SetStatusBits(uint32_t Bits)
 {
     if (g_Gfx.DPC_STATUS_REG != nullptr)
@@ -105,15 +97,21 @@ void BeginDpWork()
 
 void RecordDpCommand(uint32_t CommandLength)
 {
-    AddReg(g_Gfx.DPC_CLOCK_REG, CommandLength * 8);
-    AddReg(g_Gfx.DPC_BUFBUSY_REG, 1);
-    AddReg(g_Gfx.DPC_PIPEBUSY_REG, CommandLength);
+    // GLideN64 does not synthesize these counters, and OoT's LLE RSP path can stall if we do.
+    (void)CommandLength;
 }
 
-void FinishDpWork()
+void FinishDpWork(bool fullSync = false)
 {
     ClearStatusBits(DPC_STATUS_DMA_BUSY | DPC_STATUS_CMD_BUSY | DPC_STATUS_PIPE_BUSY | DPC_STATUS_TMEM_BUSY);
-    SetStatusBits(DPC_STATUS_CBUF_READY | DPC_STATUS_START_GCLK);
+    if (fullSync)
+    {
+        ClearStatusBits(DPC_STATUS_CBUF_READY | DPC_STATUS_START_GCLK);
+    }
+    else
+    {
+        SetStatusBits(DPC_STATUS_CBUF_READY | DPC_STATUS_START_GCLK);
+    }
 }
 
 void RaiseDpInterrupt()
@@ -311,9 +309,22 @@ void SyncHiddenRdramToCore()
                 g_ColorImageAddress, byteCount, first, last, firstValue, nonDefault, nonZero);
         }
         Project64LinuxUpdateHiddenRdramFromRdp(hiddenRdram, g_Processor->get_hidden_rdram_size(), g_ColorImageAddress, byteCount);
-        g_Processor->end_write_hidden_rdram();
+        g_Processor->end_read_hidden_rdram();
         g_HiddenRdramPrepared = false;
         g_HiddenRdramDirty = false;
+    }
+}
+
+void SyncRdramToCore()
+{
+    if (g_Processor == nullptr)
+    {
+        return;
+    }
+    const void * rdram = g_Processor->begin_read_rdram();
+    if (rdram != nullptr)
+    {
+        g_Processor->end_read_rdram();
     }
 }
 
@@ -595,6 +606,7 @@ EXPORT void CALL ProcessRDPList(void)
         return;
     }
     BeginDpWork();
+    bool fullSync = false;
 
     uint32_t length = (end - current) >> 3;
     if ((g_CommandWrite + length) > ((sizeof(g_CommandBuffer) / sizeof(g_CommandBuffer[0])) >> 1))
@@ -639,13 +651,17 @@ EXPORT void CALL ProcessRDPList(void)
 
         if ((g_CommandWrite - g_CommandRead) < commandLength)
         {
-            SetReg(g_Gfx.DPC_START_REG, Reg(g_Gfx.DPC_END_REG));
             SetReg(g_Gfx.DPC_CURRENT_REG, Reg(g_Gfx.DPC_END_REG));
             FinishDpWork();
             return;
         }
 
         RecordDpCommand(commandLength);
+        if (command == 0x3F && g_HiddenRdramDirty)
+        {
+            g_Processor->wait_for_timeline(g_Processor->signal_timeline());
+            SyncHiddenRdramToCore();
+        }
         TrackDpCommand(command, w0, g_CommandBuffer[2 * g_CommandRead + 1]);
         LogCommand(command, commandLength, &g_CommandBuffer[2 * g_CommandRead]);
         if (command >= 8)
@@ -660,18 +676,19 @@ EXPORT void CALL ProcessRDPList(void)
         if (RDP::Op(command) == RDP::Op::SyncFull)
         {
             g_Processor->wait_for_timeline(g_Processor->signal_timeline());
+            SyncRdramToCore();
             SyncHiddenRdramToCore();
             DumpColorImage();
             RaiseDpInterrupt();
+            fullSync = true;
         }
         g_CommandRead += commandLength;
     }
 
     g_CommandRead = 0;
     g_CommandWrite = 0;
-    SetReg(g_Gfx.DPC_START_REG, Reg(g_Gfx.DPC_END_REG));
     SetReg(g_Gfx.DPC_CURRENT_REG, Reg(g_Gfx.DPC_END_REG));
-    FinishDpWork();
+    FinishDpWork(fullSync);
 }
 
 EXPORT void CALL RomClosed(void)

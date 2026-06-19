@@ -26,6 +26,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <limits.h>
+#include <string>
 #include <sys/stat.h>
 #include <strings.h>
 #include <unistd.h>
@@ -249,6 +250,21 @@ private:
 static bool IsDiskImage(const stdstr & ext)
 {
     return strcasecmp(ext.c_str(), "ndd") == 0 || strcasecmp(ext.c_str(), "d64") == 0;
+}
+
+static bool IsParallelRdpPlugin(const std::string & plugin)
+{
+    return strcasecmp(plugin.c_str(), "libparallel-rdp-pj64.so") == 0;
+}
+
+static void SaveGraphicsPluginSelection(const std::string & plugin)
+{
+    const bool forceLleGfx = std::getenv("PJ64_FORCE_LLE_GFX") != nullptr;
+    const bool hleGfx = !forceLleGfx && !IsParallelRdpPlugin(plugin);
+    g_Settings->SaveString(Plugin_GFX_Current, plugin);
+    g_Settings->SaveString(Game_Plugin_Gfx, plugin);
+    g_Settings->SaveBool(Plugin_UseHleGfx, hleGfx);
+    g_Settings->SaveBool(Game_UseHleGfx, hleGfx);
 }
 
 extern "C" void Project64LinuxGfxThreadInit()
@@ -568,8 +584,7 @@ private:
         SaveSelectedDirectory(Directory_InstantSaveSelected, Directory_InstantSaveUseSelected, m_StateSaveDir);
         g_Settings->SaveBool(RomList_GameDirRecursive, m_RomDirRecursive->GetValue());
 
-        g_Settings->SaveString(Plugin_GFX_Current, m_GfxPlugin->GetValue().ToStdString());
-        g_Settings->SaveString(Game_Plugin_Gfx, m_GfxPlugin->GetValue().ToStdString());
+        SaveGraphicsPluginSelection(m_GfxPlugin->GetValue().ToStdString());
         g_Settings->SaveString(Plugin_AUDIO_Current, m_AudioPlugin->GetValue().ToStdString());
         g_Settings->SaveString(Game_Plugin_Audio, m_AudioPlugin->GetValue().ToStdString());
         g_Settings->SaveString(Plugin_CONT_Current, m_InputPlugin->GetValue().ToStdString());
@@ -1052,6 +1067,7 @@ public:
         g_Settings->SaveString(Game_Plugin_Audio, "libProject64-audio-linux.so");
         g_Settings->SaveString(Plugin_CONT_Current, "libProject64-input-linux.so");
         g_Settings->SaveString(Game_Plugin_Controller, "libProject64-input-linux.so");
+        SaveGraphicsPluginSelection(g_Settings->LoadStringVal(Plugin_GFX_Current));
         g_Settings->SaveBool(Setting_ForceInterpreterCPU, true);
 
         Project64Frame * frame = new Project64Frame(m_MainRenderWindow, m_SyncRenderWindow);

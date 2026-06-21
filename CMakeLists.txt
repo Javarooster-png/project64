@@ -547,6 +547,21 @@ target_link_libraries(Plugin-rsp PRIVATE
     asmjit
     zlib)
 
+add_library(cxd4-rsp-pj64 SHARED
+    Source/Project64-rsp-cxd4/rsp.c
+    Source/Project64-rsp-cxd4/project64_exports.c)
+set_target_properties(cxd4-rsp-pj64 PROPERTIES
+    OUTPUT_NAME cxd4-rsp-pj64
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(cxd4-rsp-pj64 PRIVATE
+    "${PJ64_SOURCE}/Project64-rsp-cxd4"
+    "${PJ64_SOURCE}/Project64-rsp-cxd4/vu")
+target_compile_options(cxd4-rsp-pj64 PRIVATE
+    -fno-strict-aliasing
+    $<$<COMPILE_LANGUAGE:C>:-Wno-unused-variable>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-unused-function>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-maybe-uninitialized>)
+
 add_executable(project64-linux
     Source/Project64-linux/main.cpp)
 target_include_directories(project64-linux PRIVATE
